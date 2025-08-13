@@ -2,6 +2,7 @@
 
 export type Priority = "High" | "Medium" | "Low";
 export type Category = "Personal" | "Work" | "Health";
+export type TaskFilter = "All" | "Open" | "Done";
 
 export interface Task {
   id: string;

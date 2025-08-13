@@ -1,23 +1,55 @@
+// secureStorage.ts
+// save, get, and delete data
+// web==> localStorage (
+// On mobile ==> SecureStore
+
 import * as SecureStore from "expo-secure-store";
-const isWeb = typeof window !== "undefined";
+import { Platform } from "react-native";
 
-// sets fallback to localstorage if on web and uses SecStore on mobile
+class SecureStorage {
+  // Save data
+  async save(key: string, value: string) {
+    try {
+      // check if on web ==>l.s.=> save data
+      if (Platform.OS === "web") {
+        localStorage.setItem(key, value);
+      } else {
+        // fallabck to mobiel--
+        await SecureStore.setItemAsync(key, value);
+      }
+    } catch (err) {
+      console.error("Error saving data:", err);
+    }
+  }
 
-// storiug data in key:value pairs and type-cehcking
+  // Get data -- type-check
+  // tell where to fetch ddata from ---s
+  async get(key: string): Promise<string | null> {
+    try {
+      if (Platform.OS === "web") {
+        return localStorage.getItem(key);
+      } else {
+        return await SecureStore.getItemAsync(key);
+      }
+    } catch (err) {
+      // cathc any errors
+      console.error("Error getting data:", err);
+      return null;
+    }
+  }
 
-export async function saveValue(key: string, value: string) {
-  // SAvign VAlues--
-  // Logic = IF web --> run browser
-  //  IF on Web -> use LocalStorage
-  if (isWeb) localStorage.setItem(key, value);
-  // If mobile --> use SsecureStore
-  else await SecureStore.setItemAsync(key, value);
+  // Delete data
+  async remove(key: string) {
+    try {
+      if (Platform.OS === "web") {
+        localStorage.removeItem(key);
+      } else {
+        await SecureStore.deleteItemAsync(key);
+      }
+    } catch (err) {
+      console.error("Error deleting data:", err);
+    }
+  }
 }
 
-// Gettign values
-export async function getValue(key: string) {
-  // Logic=  IF on Web -> use LocalStorage
-  if (isWeb) return localStorage.getItem(key) ?? null;
-  // If mobile --> use SsecureStore and fetch stored data/value
-  return await SecureStore.getItemAsync(key);
-}
+export default new SecureStorage();

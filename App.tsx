@@ -5,6 +5,7 @@ import { StatusBar } from "expo-status-bar";
 
 import Index from "./app/index";
 import AddTask from "./app/add-Task";
+import Settings from "./app/settings";
 
 const Stack = createNativeStackNavigator();
 
@@ -20,7 +21,7 @@ export default function App() {
           options={{ title: "Add Task" }}
         />
         {/* settings page herer ....  */}
-        {/* <Stack.Screen name="Settings" component={Settings} /> */}
+        <Stack.Screen name="Settings" component={Settings} />
       </Stack.Navigator>
     </NavigationContainer>
   );
