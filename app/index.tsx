@@ -9,18 +9,22 @@ import {
 } from "react-native";
 import { NativeStackScreenProps } from "@react-navigation/native-stack";
 
-import type { Task } from "../types/Tasks";
+import type { Category, Task } from "../types/Tasks";
 import { priorityColor } from "../constants/colors";
 import SecureStorage from "../services/SecureStore";
 
 type Props = NativeStackScreenProps<any, any>;
 type Filter = "all" | "open" | "done";
+// type CATS = Category;
+type CategoryFilter = "All" | "Personal" | "Work" | "Health";
 
 export default function Index({ navigation }: Props) {
   // all tasks -- List them--
   const [tasks, setTasks] = useState<Task[]>([]);
   // filter tab choosen ---
   const [filter, setFilter] = useState<Filter>("all");
+  // filtrer for CATs
+  const [catFilter, setCatFilter] = useState<CategoryFilter>("All");
 
   // Load tasks ==> storage
   async function refresh() {
@@ -38,14 +42,20 @@ export default function Index({ navigation }: Props) {
   /*useMemo:only reruns if values cahnge upon filter slection*/
   const filtered = useMemo(() => {
     // logic if.else returrn tasks
-    if (filter === "all") return tasks;
-    if (filter === "open") return tasks.filter((t) => !t.completed);
+    // start=full list--> apply filters 1@time
+    let list = tasks;
 
-    return tasks.filter((t) => t.completed);
-  }, [tasks, filter]);
+    if (filter === "open") list = list.filter((t) => !t.completed);
+    if (filter === "done") list = list.filter((t) => t.completed);
+
+    // Add CATs/ category filter if not "All"
+    if (catFilter !== "All") {
+      list = list.filter((t) => t.category === (catFilter as Category));
+    }
+    return list;
+  }, [tasks, filter, catFilter]);
 
   // dialog/pop up to CONFRIM selection ----
-
   const confirmDelete = (id: string) => {
     Alert.alert(
       "Delete task?", // Title /top of the alert
@@ -77,16 +87,15 @@ export default function Index({ navigation }: Props) {
       ]
     );
   };
+
   // TOGGLE feature --
   // Flip completed 2 not completed==? then save
-
   const toggleTask = async (id: string) => {
     // Go through all the tasks and create a NEW updated list
     const updated = tasks.map((t) => {
       //slected task =id
       if (t.id === id) {
         // Return flipped value
-
         return {
           ...t,
           completed: !t.completed,
@@ -115,6 +124,10 @@ export default function Index({ navigation }: Props) {
             { backgroundColor: priorityColor(item.priority) },
           ]}
         />
+        {/* pass Category as well --  */}
+        <View style={styles.catPill}>
+          <Text style={styles.catText}>{item.category}</Text>
+        </View>
         <View style={{ flex: 1 }}>
           <Text style={[styles.title, item.completed && styles.completed]}>
             {item.title}
@@ -158,6 +171,24 @@ export default function Index({ navigation }: Props) {
             <Text style={styles.link}>+ Add</Text>
           </TouchableOpacity>
         </View>
+      </View>
+      {/* add the CAT filter----- */}
+
+      <View style={[styles.filters, styles.catFilters]}>
+        {(["All", "Personal", "Work", "Health"] as CategoryFilter[]).map(
+          (c) => (
+            <TouchableOpacity key={c} onPress={() => setCatFilter(c)}>
+              <Text
+                style={[
+                  styles.catFilter,
+                  catFilter === c && styles.catFilterActive,
+                ]}
+              >
+                {c.toUpperCase()}
+              </Text>
+            </TouchableOpacity>
+          )
+        )}
       </View>
 
       {/* Task list */}
@@ -203,7 +234,29 @@ const styles = StyleSheet.create({
     marginTop: 2,
   },
   title: { fontSize: 16, fontWeight: "700" },
-  completed: { textDecorationLine: "line-through", color: "#9CA3AF" },
+  completed: { textDecorationLine: "line-through", color: "red" },
   desc: { color: "#6B7280", marginTop: 2 },
   delete: { fontSize: 18 },
+
+  // CAT Pill ---
+  catPill: {
+    backgroundColor: "#E5E7EB",
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 999,
+  },
+  catText: {
+    fontSize: 12,
+    color: "#111827",
+    fontWeight: "600",
+  },
+
+  // CATs/category filter --
+  catFilters: {
+    paddingHorizontal: 16,
+    paddingBottom: 8,
+    backgroundColor: "#fff",
+  },
+  catFilter: { fontWeight: "600", color: "#6b7280" },
+  catFilterActive: { color: "#2563EB", textDecorationLine: "underline" },
 });
