@@ -6,6 +6,10 @@ import { StatusBar } from "expo-status-bar";
 import Index from "./app/index";
 import AddTask from "./app/add-Task";
 import Settings from "./app/settings";
+// nneed to add Chat page ----
+import ChatScreen from "./app/chat";
+// CollabPaige --
+import CollaborativeTasksScreen from "./app/collaborative";
 
 const Stack = createNativeStackNavigator();
 
@@ -20,6 +24,10 @@ export default function App() {
           component={AddTask}
           options={{ title: "Add Task" }}
         />
+        {/* ChatScreen ...  */}
+        <Stack.Screen name="Chat" component={ChatScreen} />
+        {/* CollabScreen ...  */}
+        <Stack.Screen name="Collab" component={CollaborativeTasksScreen} />
         {/* settings page herer ....  */}
         <Stack.Screen name="Settings" component={Settings} />
       </Stack.Navigator>

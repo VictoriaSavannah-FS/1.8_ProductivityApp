@@ -1,24 +1,52 @@
-# Welcome to Expo Productivity App
+# Expo Productivity + LiveChat App
+
+This cross-platform app was originally built as a **Productivity App** (Assignment 1.8) and later extended into a **LiveChat App with Offline Queued Messages**
+
+### Assignment 1.8:
 
 This is cross-platform personal productivity app built with Expo that works on both mobile (iOS) and web platforms. This app will allow you to create and edit tasks and group them based on priority. The App implements local storage, modern styling, and cross-platform configuration.
 
-## Features
+### Assignment 2.6:
+
+It works on both **mobile (iOS)** and **web platforms** using Expo + TypeScript.
+
+---
+
+## 🚀 Features
+
+### Productivity (Assignment 1.8)
 
 - Create tasks with title, description, and priority (High, Medium, Low)
 - Mark tasks complete/incomplete with visual feedback
 - Delete tasks with confirmation
-- Filter Tasks / Task Status (total Tasks / Completed)
+- Filter tasks by status (All / Completed / Open)
 - Task list display with priority color coding
-- Assign Tasks to Categories (Work, Personal, Health)
+- Assign tasks to Categories (Work, Personal, Health)
+- Local storage with SQLite
+- Secure storage for app settings with Expo SecureStore
 
-## Tech Stack
+### LiveChat (Assignment 2.6)
 
-- Framework: Expo (@latest version)
-- Language: TypeScript
-- Styling: Stylesheet
-- Database: SQLite (store Tasks)
-- SecureStore: Expo SecureStore (Storing Settings)
-- Navigation: React Navigation (3 screens)
+- Real-time chat using Socket.IO
+- Detects client offline/online status
+- Queues messages locally while offline
+- Automatically sends queued messages once reconnected
+- Syncs chat state across multiple clients (cross-platform)
+- Demonstrates functionality even when Wi-Fi is turned off and reconnected
+
+---
+
+## 🛠 Tech Stack
+
+- **Framework:** Expo (latest)
+- **Language:** TypeScript
+- **Styling:** React Native `StyleSheet`
+- **Database:** SQLite (local task storage)
+- **Secure Storage:** Expo SecureStore
+- **Navigation:** React Navigation (3 screens)
+- **Real-time Messaging:** Socket.IO client + server
+
+---
 
 ## Install / Getting Started
 
@@ -40,11 +68,45 @@ This is cross-platform personal productivity app built with Expo that works on b
 - For Mobile (iOs):
 
 ```bash
-    npx start ==ios
+    npx expo start ==ios
 ```
 
 - For Web:
 
 ```bash
-    npx start ==web
+    npx expo  start ==web
 ```
+
+## LiveChat Setup (2.6)
+
+1. Run the Socket.IO server
+
+- Go to the /server folder
+- Install server dependencies:
+
+```bash
+    npm install
+```
+
+2. Start Server
+
+```bash
+    npm run dev
+```
+
+## Update Client Config
+
+- Inside the App, update the socket URL to match your LAN IP and port (e.g., http://192.168.x.x:3000).
+
+## Test Offline Queue•
+
+- Start app and send a message while connected to WIFI
+- TURN OFF WIFI and send more messages- > they should be queued locally
+- TURN ON the WIFI -> queued messages will automatically send
+
+### Notes
+
+This project was adapted with help from AI-assisted code generation.
+
+- I reviewed, tested, and modified the code to ensure it worked with my setup (LAN IP, server config, and React Native client).
+- I also refactored styling to use StyleSheet instead of NativeWind and restructured files for clarity.

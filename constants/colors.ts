@@ -1,6 +1,12 @@
 // colors? for filters and priitoritys....
 // utils/priorityColor.ts
-// This helper picks a dot color based on the priority text
+// HELPER picks a dot color based on the priority text
+
+/**
+ * helps give cosnistent colors for my tasks based on priority labesl
+ */
+
+// which I need to go bakc and add PRIORITY TASKS!!
 
 export function priorityColor(priority: string) {
   switch (priority.toLowerCase()) {
