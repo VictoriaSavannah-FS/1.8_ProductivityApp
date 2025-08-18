@@ -1,4 +1,4 @@
-// reusable component --> shows chat meegaes in a list (FlatLsit)
+// reusable component --> shows chat messasgaes in a list (FlatLsit)
 /**Pass props from Chat DB
  * CurrentUSerID: spefcific / unique ID;s to users
  * onEndReached?: callback to Laod older messages when scrollign up
@@ -6,7 +6,7 @@
  *  RENDERING USER DATA ------
  */
 
-import React, { forwardRef } from "react";
+import React, { forwardRef, useMemo } from "react";
 import { View, Text, FlatList, StyleSheet, ListRenderItem } from "react-native";
 // importign the ChatMessage seervice -TYpe logic pass props
 import type { ChatMessage } from "../../services/chatDatabase";
@@ -26,14 +26,41 @@ type Props = {
  * FlatList methods. Example: after sending/receiving a msg, parent can call
  * `ref.current?.scrollToEnd()` to scroll to the latest message.
  */
-
 const MessageList = forwardRef<FlatList<ChatMessage>, Props>(
   ({ messages, currentUserId, onEndReached }, ref) => {
+    /**
+     * WHY this block?
+     * When you send a message optimistically, it first appears with a `tempId`.
+     * Later the server echoes the "real" message with a permanent `id`.
+     * If both versions are in the array at once, FlatList can see two items
+     * with the *same* computed key → red screen.
+     *
+     * `uniqueMessages` collapses duplicates so only one copy renders.
+     * Rule: prefer `id` if present; else `tempId`; else a stable composite.
+     */
+    const uniqueMessages = useMemo(() => {
+      const byKey = new Map<string, ChatMessage>();
+
+      for (const m of messages) {
+        // compute a stable key for this item
+        const k =
+          m.id ??
+          m.tempId ??
+          // last-resort stable composite (room + timestamp + user)
+          `${m.roomId}|${m.timestamp}|${m.userId}`;
+
+        // If we see the same key again (e.g., server "real" message replaces optimistic),
+        // we keep the latest one so delivered flags etc. are up to date.
+        byKey.set(k, m);
+      }
+
+      return Array.from(byKey.values());
+    }, [messages]);
+
     /**
      * renderItem = fcntion--> renders e/a row -> chat list
      * - Decides how each message looks depending on WHO sent it (USer)
      */
-
     const renderItem: ListRenderItem<ChatMessage> = ({ item }) => {
       // chhecks if messge ==> from curerntUSer (who's is it)
       const isOwn = item.userId === currentUserId;
@@ -80,8 +107,19 @@ const MessageList = forwardRef<FlatList<ChatMessage>, Props>(
       <FlatList
         ref={ref as any} //TS type chcekign
         // we dienfed FlatList as useRef @ parent so we can fetch/callback here
-        data={messages} //[] of mesages from props
-        keyExtractor={(m) => m.id} //e/a mssg -> unique key
+
+        /** 👇 Use the deduped array to avoid duplicate keys */
+        data={uniqueMessages}
+        /**
+         * THEEE Safe key extractor:
+         * - Prefer server `id`
+         * - else fall back to optimistic `tempId`
+         * - else use a "deterministic composite" so it's still unique + stable
+         */
+        // as lomg as my code doesn't break again@!!!
+        keyExtractor={(m) =>
+          m.id ?? m.tempId ?? `${m.roomId}|${m.timestamp}|${m.userId}`
+        }
         renderItem={renderItem} //hwo to render e/a mssg row
         contentContainerStyle={styles.listContent} // Styles
         // Laod older comemtns -------
