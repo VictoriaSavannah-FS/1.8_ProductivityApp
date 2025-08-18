@@ -1076,12 +1076,12 @@ export const useChat = (userId: string, userName: string): UseChatReturn => {
 
       const older = await chatService.getMessagesForRoom(
         currentRoom,
-        20, // limit
+        20, // limits
         messageOffset // offset
       );
 
       if (older.length > 0) {
-        // prepend older history above what’s already shown
+        // prepend older history above what’s already shown -- UI / like in text mesesg
         setMessages((prev) => [...older, ...prev]);
         setMessageOffset((prev) => prev + older.length);
       }
