@@ -13,6 +13,8 @@ import CollaborativeTasksScreen from "./app/collaborative";
 
 const Stack = createNativeStackNavigator();
 
+const CURRENT_USER = { id: "u_demo_1", userName: "Demo", name: "Demo" }; // <-- mock user
+
 export default function App() {
   return (
     <NavigationContainer>
@@ -25,7 +27,15 @@ export default function App() {
           options={{ title: "Add Task" }}
         />
         {/* ChatScreen ...  */}
-        <Stack.Screen name="Chat" component={ChatScreen} />
+        <Stack.Screen
+          name="Chat"
+          component={ChatScreen}
+          // give Chat what it needs without touching other screens
+          initialParams={{ currentUser: CURRENT_USER, roomId: "general" }}
+        />
+
+        {/* <Stack.Screen name="Chat" component={ChatScreen} />
+        v */}
         {/* CollabScreen ...  */}
         <Stack.Screen name="Collab" component={CollaborativeTasksScreen} />
         {/* settings page herer ....  */}

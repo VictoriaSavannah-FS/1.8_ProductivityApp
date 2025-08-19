@@ -20,6 +20,8 @@ export interface UseChatReturn {
   reloadMessages: () => Promise<void>;
   /**2.8 : unread badge counts per room (e.g., { general: 3, dev: 1 }) */
   unread: Record<string, number>;
+  // 2.8 - live sokcet Status to pass the PressenceSTatus
+  isConnected: boolean;
 }
 
 // DEFINE HOOOKK ------------
@@ -54,6 +56,9 @@ export const useChat = (userId: string, userName: string): UseChatReturn => {
    * tranks unread msges in e/a room
    * ex: [OGChat:4, XChat:1] */
   const [unread, setUnread] = useState<Record<string, number>>({});
+
+  // 2.8 -- update Live Conxt status / presence Dot/bttn
+  const [isConnected, setIsConnected] = useState<boolean>(false); // NEW-----
 
   // crEates a contaier/box to store values for later use
   const currentRoomRef = useRef<string | null>(null);
@@ -181,9 +186,55 @@ export const useChat = (userId: string, userName: string): UseChatReturn => {
           )
         );
       });
+      /** NEW: live connection status for PresenceStatus dot */
+      // @ts-ignore
+      // const offConn = chatService.onConnection((connected: boolean) => {
+      //   setIsConnected(connected);
+      // });
 
-      // saves functiosn to ref leter--
-      unsubsRef.current = [offMessage, offTyping, offDelivery];
+      /** NEW: server-side message edits => update row immediately */
+      // @ts-ignore
+      const offEdited = chatService.onEdited((payload) => {
+        // payload: { messageId, newText, editedAt }
+        setMessages((prev) =>
+          prev.map((m) =>
+            m.id === payload.messageId
+              ? {
+                  ...m,
+                  text: payload.newText,
+                  edited: true,
+                  editedAt: payload.editedAt,
+                }
+              : m
+          )
+        );
+      });
+
+      /** NEW: room presence updates => keep participant counts in rooms[] */
+      // @ts-ignore
+      const offPresence = chatService.onRoomPresence(({ roomId, members }) => {
+        setRooms((prev) =>
+          prev.map((r) =>
+            r.id === roomId
+              ? {
+                  ...r,
+                  participants: members?.map((m: any) => m.userName) ?? [],
+                }
+              : r
+          )
+        );
+      });
+      // // saves functiosn to ref leter--
+      // unsubsRef.current = [
+      //   offMessage,
+      //   offTyping,
+      //   offDelivery,
+      //   offConn,
+      //   offEdited,
+      //   offPresence,
+      // ];
+      // // saves functiosn to ref leter--
+      // unsubsRef.current = [offMessage, offTyping, offDelivery];
 
       setIsLoading(false); //ayscn @ end.. no more laod stae
     })();
@@ -265,6 +316,10 @@ export const useChat = (userId: string, userName: string): UseChatReturn => {
    */
   const sendMessage = useCallback(async (text: string) => {
     try {
+      /** 2.8: pass "@mentions" so server can emit "mention" events */
+      const mentions = (text.match(/@([a-zA-Z0-9_]+)/g) || []).map((t) =>
+        t.slice(1)
+      ); // NEW
       await chatService.sendMessage(text);
     } catch (error) {
       console.error("Error sending message:", error);
@@ -319,5 +374,6 @@ export const useChat = (userId: string, userName: string): UseChatReturn => {
     reloadMessages,
     // provde unRead MAp() ==> for Channelist => upadte badges
     unread,
+    isConnected,
   };
 };
