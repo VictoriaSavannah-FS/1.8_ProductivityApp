@@ -16,9 +16,9 @@ export interface UseChatReturn {
   startTyping: () => void;
   stopTyping: () => void;
   loadMoreMessages: () => Promise<void>;
-  /** 👇 lets a screen re-hydrate messages from persistent storage on demand */
+  /** relaods messg from storge */
   reloadMessages: () => Promise<void>;
-  /** 👶 NEW: unread badge counts per room (e.g., { general: 3, dev: 1 }) */
+  /**2.8 : unread badge counts per room (e.g., { general: 3, dev: 1 }) */
   unread: Record<string, number>;
 }
 

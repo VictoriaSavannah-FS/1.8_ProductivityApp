@@ -90,7 +90,7 @@ const roomMembers = new Map();
 // MAP to indexUsernames
 const usernameIndex = new Map();
 
-function udpateRoomPresence(roomId) {
+function updateRoomPresence(roomId) {
   // fetch userId's from rM line in Room => to get roomId else=> empty[]
   const memberIDs = Array.from(roomMembers.get(roomId) ?? []);
 
@@ -317,7 +317,7 @@ io.on("connection", (socket) => {
 
     console.log(`User ${userName} joined room ${roomId}`);
     // 2.8 ---- Dynamics broadcast/Status presence + counts Udpates
-    udpateRoomPresence(roomId);
+    updateRoomPresence(roomId);
     updateRoomCount();
   });
 
@@ -788,44 +788,90 @@ io.on("connection", (socket) => {
   // -------------------------
   // Disconnect cleanup
   // -------------------------
+
   socket.on("disconnect", (reason) => {
     console.log(`User disconnected: ${socket.id}, reason: ${reason}`);
 
+    // figure out the userId for this socket
     const sess = userSessions.get(socket.id);
     const userId = sess?.userId ?? currentUserId;
-    if (!userId) return;
+    if (!userId) {
+      // still clear session & collab state
+      leaveCurrentRoom(socket);
+      userSessions.delete(socket.id);
+      (global.__collabRooms || new Map()).forEach((room, roomId) => {
+        const p = Array.from(room.participants.values()).find(
+          (x) => x.socketId === socket.id
+        );
+        if (p) {
+          // remove user form given chatRoomId
+          room.removeParticipant(p.userId);
+          socket.to(roomId).emit("participant_left", {
+            userId: p.userId,
+            userName: p.userName,
+            timestamp: new Date().toISOString(),
+          });
+          // sedn to socekt
+          socket.to(roomId).emit("participants_updated", {
+            participants: room.getParticipantsList(),
+          });
+          socket.to(roomId).emit("user_fields_unlocked", { userId: p.userId });
+        }
+      });
+      return;
+    }
 
-    u.sockets.delete(socket.id);
-    // If user has no sockets, update lastSeen and remove from rooms
+    const u = users.get(userId);
+    if (u) {
+      // remove this socket from ==> user’s active sockets
+      u.sockets.delete(socket.id);
 
-    if (u.sockets.size === 0) {
-      u.lastSeen = Date.now();
+      // if no active sockets remain==> mark OFFLINE
+      if (u.sockets.size === 0) {
+        u.lastSeen = Date.now();
 
-      for (const roomId of u.rooms) {
-        const set = roomMembers.get(roomId);
-        if (condition) {
-          set.delete(userId);
-          if (set.size === 0) roomMembers.delete(roomId);
+        for (const rid of u.rooms) {
+          // Get rid of roomMem
+          const set = roomMembers.get(rid);
+          if (set) {
+            set.delete(userId);
+            if (set.size === 0) roomMembers.delete(rid);
+          }
+          // update presence & counts per room
+          updateRoomPresence(rid);
+          updateRoomCount();
+
+          // update w/  "left" message
+          io.to(rid).emit("new_message", {
+            id: `sys_${Date.now()}`,
+            roomId: rid,
+            userId: "system",
+            userName: "System",
+            text: `${u.userName} left..till we meet again...`,
+            timestamp: new Date().toISOString(),
+            delivered: true,
+            read: false,
+            type: "system",
+          });
         }
       }
     }
 
-    updatePresence(roomId);
-    updateRoomCount();
-    // Leave chat room properly
+    // clean Users & rset for new Room
     leaveCurrentRoom(socket);
-    userSessions.delete(socket.id); //clrea identy record
 
-    // Remove from any collaborative rooms
+    // drop session record
+    userSessions.delete(socket.id);
+
+    // collaborative rooms cleanup
     (global.__collabRooms || new Map()).forEach((room, roomId) => {
       const userToRemove = Array.from(room.participants.values()).find(
         (p) => p.socketId === socket.id
       );
       if (userToRemove) {
-        // drop presencesc and Lock edis----
+        // remove USer who left from list
         room.removeParticipant(userToRemove.userId);
         socket.to(roomId).emit("participant_left", {
-          // update other Users===========
           userId: userToRemove.userId,
           userName: userToRemove.userName,
           timestamp: new Date().toISOString(),
@@ -833,9 +879,9 @@ io.on("connection", (socket) => {
         socket.to(roomId).emit("participants_updated", {
           participants: room.getParticipantsList(),
         });
-        socket.to(roomId).emit("user_fields_unlocked", {
-          userId: userToRemove.userId,
-        });
+        socket
+          .to(roomId)
+          .emit("user_fields_unlocked", { userId: userToRemove.userId });
       }
     });
   });
