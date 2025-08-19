@@ -1,1051 +1,267 @@
-// // // // import { useState, useEffect, useCallback } from "react";
-// // // // import { chatService, TypingUser } from "../services/chatService";
-// // // // import { ChatMessage, ChatRoom } from "../services/chatDatabase";
-// // // // export interface UseChatReturn {
-// // // //   messages: ChatMessage[];
-// // // //   typingUsers: TypingUser[];
-// // // //   rooms: ChatRoom[];
-// // // //   currentRoom: string | null;
-// // // //   isLoading: boolean;
-// // // //   sendMessage: (text: string) => Promise<void>;
-// // // //   joinRoom: (roomId: string, roomName: string) => Promise<void>;
-// // // //   startTyping: () => void;
-// // // //   stopTyping: () => void;
-// // // //   loadMoreMessages: () => Promise<void>;
-// // // // }
-// // // // export const useChat = (userId: string, userName: string): UseChatReturn => {
-// // // //   const [messages, setMessages] = useState<ChatMessage[]>([]);
-// // // //   const [typingUsers, setTypingUsers] = useState<TypingUser[]>([]);
-// // // //   const [rooms, setRooms] = useState<ChatRoom[]>([]);
-// // // //   const [currentRoom, setCurrentRoom] = useState<string | null>(null);
-// // // //   const [isLoading, setIsLoading] = useState(false);
-// // // //   const [messageOffset, setMessageOffset] = useState(0);
-
-// // // //   useEffect(() => {
-// // // //     // passign userNAem ==> uiser IID
-
-// // // //     initializeChat();
-// // // //   }, [userId, userName]);
-// // // //   const initializeChat = async () => {
-// // // //     try {
-// // // //       setIsLoading(true);
-// // // //       await chatService.initialize(userId, userName);
-
-// // // //       // Load existing rooms
-// // // //       const existingRooms = await chatService.getAllRooms();
-// // // //       setRooms(existingRooms);
-
-// // // //       // Set up event listeners
-// // // //       const unsubscribeMessage = chatService.onMessage((message) => {
-// // // //         setMessages((prev) => {
-// // // //           // Avoid duplicates
-// // // //           const exists = prev.some(
-// // // //             (m) => m.id === message.id || m.tempId === message.tempId
-// // // //           );
-// // // //           if (exists) {
-// // // //             // Update existing message (e.g., delivery status)
-// // // //             return prev.map((m) =>
-// // // //               m.id === message.id || m.tempId === message.tempId ? message : m
-// // // //             );
-// // // //           }
-// // // //           return [...prev, message];
-// // // //         });
-// // // //       });
-// // // //       const unsubscribeTyping = chatService.onTyping((typingUser) => {
-// // // //         setTypingUsers((prev) => {
-// // // //           const filtered = prev.filter((u) => u.userId !== typingUser.userId);
-// // // //           return typingUser.isTyping ? [...filtered, typingUser] : filtered;
-// // // //         });
-// // // //       });
-// // // //       const unsubscribeDelivery = chatService.onDelivery(
-// // // //         (tempId, messageId) => {
-// // // //           setMessages((prev) =>
-// // // //             prev.map((m) =>
-// // // //               m.tempId === tempId
-// // // //                 ? { ...m, id: messageId, delivered: true, tempId: undefined }
-// // // //                 : m
-// // // //             )
-// // // //           );
-// // // //         }
-// // // //       );
-// // // //       return () => {
-// // // //         unsubscribeMessage();
-// // // //         unsubscribeTyping();
-// // // //         unsubscribeDelivery();
-// // // //       };
-// // // //     } catch (error) {
-// // // //       console.error("Error initializing chat:", error);
-// // // //     } finally {
-// // // //       setIsLoading(false);
-// // // //     }
-// // // //   };
-// // // //   const joinRoom = useCallback(async (roomId: string, roomName: string) => {
-// // // //     try {
-// // // //       setIsLoading(true);
-// // // //       await chatService.joinRoom(roomId, roomName);
-
-// // // //       // Load messages for this room
-// // // //       const roomMessages = await chatService.getMessagesForRoom(roomId);
-// // // //       setMessages(roomMessages);
-// // // //       setCurrentRoom(roomId);
-// // // //       setMessageOffset(roomMessages.length);
-
-// // // //       // Clear typing indicators when switching rooms
-// // // //       setTypingUsers([]);
-// // // //     } catch (error) {
-// // // //       console.error("Error joining room:", error);
-// // // //     } finally {
-// // // //       setIsLoading(false);
-// // // //     }
-// // // //   }, []);
-// // // //   const sendMessage = useCallback(async (text: string) => {
-// // // //     try {
-// // // //       await chatService.sendMessage(text);
-// // // //     } catch (error) {
-// // // //       console.error("Error sending message:", error);
-// // // //     }
-// // // //   }, []);
-// // // //   const startTyping = useCallback(() => {
-// // // //     chatService.startTyping();
-// // // //   }, []);
-// // // //   const stopTyping = useCallback(() => {
-// // // //     chatService.stopTyping();
-// // // //   }, []);
-// // // //   const loadMoreMessages = useCallback(async () => {
-// // // //     if (!currentRoom || isLoading) return;
-
-// // // //     try {
-// // // //       setIsLoading(true);
-// // // //       const olderMessages = await chatService.getMessagesForRoom(
-// // // //         currentRoom,
-// // // //         20,
-// // // //         messageOffset
-// // // //       );
-
-// // // //       if (olderMessages.length > 0) {
-// // // //         setMessages((prev) => [...olderMessages, ...prev]);
-// // // //         setMessageOffset((prev) => prev + olderMessages.length);
-// // // //       }
-// // // //     } catch (error) {
-// // // //       console.error("Error loading more messages:", error);
-// // // //     } finally {
-// // // //       setIsLoading(false);
-// // // //     }
-// // // //   }, [currentRoom, messageOffset, isLoading]);
-// // // //   return {
-// // // //     messages,
-// // // //     typingUsers,
-// // // //     rooms,
-// // // //     currentRoom,
-// // // //     isLoading,
-// // // //     sendMessage,
-// // // //     joinRoom,
-// // // //     startTyping,
-// // // //     stopTyping,
-// // // //     loadMoreMessages,
-// // // //   };
-// // // // };
-
-// // // import { useState, useEffect, useCallback, useRef } from "react";
-// // // import { useFocusEffect } from "@react-navigation/native";
-// // // import { chatService, TypingUser } from "../services/chatService";
-// // // import { ChatMessage, ChatRoom } from "../services/chatDatabase";
-
-// // // export interface UseChatReturn {
-// // //   messages: ChatMessage[];
-// // //   typingUsers: TypingUser[];
-// // //   rooms: ChatRoom[];
-// // //   currentRoom: string | null;
-// // //   isLoading: boolean;
-// // //   sendMessage: (text: string) => Promise<void>;
-// // //   joinRoom: (roomId: string, roomName: string) => Promise<void>;
-// // //   startTyping: () => void;
-// // //   stopTyping: () => void;
-// // //   loadMoreMessages: () => Promise<void>;
-// // // }
-
-// // // export const useChat = (userId: string, userName: string): UseChatReturn => {
-// // //   const [messages, setMessages] = useState<ChatMessage[]>([]);
-// // //   const [typingUsers, setTypingUsers] = useState<TypingUser[]>([]);
-// // //   const [rooms, setRooms] = useState<ChatRoom[]>([]);
-// // //   const [currentRoom, setCurrentRoom] = useState<string | null>(null);
-// // //   const [isLoading, setIsLoading] = useState(false);
-// // //   const [messageOffset, setMessageOffset] = useState(0);
-
-// // //   // We’ll keep any “unsubscribe” functions returned by chatService.onX handlers here
-// // //   const unsubsRef = useRef<Array<() => void>>([]);
-
-// // //   // Helper to remove all listeners we registered in this hook
-// // //   const removeAllListeners = () => {
-// // //     unsubsRef.current.forEach((fn) => {
-// // //       try {
-// // //         fn();
-// // //       } catch {}
-// // //     });
-// // //     unsubsRef.current = [];
-// // //   };
-
-// // //   useEffect(() => {
-// // //     // Wrap async work in an IIFE; the effect itself can’t be async
-// // //     (async () => {
-// // //       setIsLoading(true);
-
-// // //       // 1) Initialize the chat layer (opens socket, sets identity, primes DB, etc.)
-// // //       await chatService.initialize(userId, userName);
-
-// // //       // 2) Load existing rooms
-// // //       const existingRooms = await chatService.getAllRooms();
-// // //       setRooms(existingRooms);
-
-// // //       // 3) Wire real-time listeners and store their "unsubscribe" callbacks
-// // //       removeAllListeners(); // make sure we don't double-register on re-renders
-
-// // //       const offMessage = chatService.onMessage((message) => {
-// // //         setMessages((prev) => {
-// // //           // De-dup by id or tempId (optimistic -> server-ack)
-// // //           const exists = prev.some(
-// // //             (m) => m.id === message.id || m.tempId === message.tempId
-// // //           );
-// // //           if (exists) {
-// // //             return prev.map((m) =>
-// // //               m.id === message.id || m.tempId === message.tempId ? message : m
-// // //             );
-// // //           }
-// // //           return [...prev, message];
-// // //         });
-// // //       });
-
-// // //       const offTyping = chatService.onTyping((typingUser) => {
-// // //         setTypingUsers((prev) => {
-// // //           const filtered = prev.filter((u) => u.userId !== typingUser.userId);
-// // //           return typingUser.isTyping ? [...filtered, typingUser] : filtered;
-// // //         });
-// // //       });
-
-// // //       const offDelivery = chatService.onDelivery((tempId, messageId) => {
-// // //         setMessages((prev) =>
-// // //           prev.map((m) =>
-// // //             m.tempId === tempId
-// // //               ? { ...m, id: messageId, delivered: true, tempId: undefined }
-// // //               : m
-// // //           )
-// // //         );
-// // //       });
-
-// // //       unsubsRef.current = [offMessage, offTyping, offDelivery];
-// // //       setIsLoading(false);
-// // //     })();
-
-// // //     // IMPORTANT: we only remove listeners on unmount.
-// // //     // We do NOT disconnect the socket here—keep it alive across screens.
-// // //     return () => {
-// // //       removeAllListeners();
-// // //     };
-// // //   }, [userId, userName]);
-
-// // //   // When the screen gains focus (you navigate back to it),
-// // //   // reload messages for the current room from storage so UI repopulates.
-// // //   useFocusEffect(
-// // //     useCallback(() => {
-// // //       let active = true;
-// // //       (async () => {
-// // //         if (!currentRoom) return;
-// // //         const saved = await chatService.getMessagesForRoom(currentRoom);
-// // //         if (active) {
-// // //           setMessages(saved);
-// // //           setMessageOffset(saved.length);
-// // //           setTypingUsers([]);
-// // //         }
-// // //       })();
-// // //       return () => {
-// // //         active = false;
-// // //       };
-// // //     }, [currentRoom])
-// // //   );
-
-// // //   const joinRoom = useCallback(async (roomId: string, roomName: string) => {
-// // //     try {
-// // //       setIsLoading(true);
-
-// // //       // Tell the server we’re in this room
-// // //       await chatService.joinRoom(roomId, roomName);
-
-// // //       // Load the latest messages for the room from persistence
-// // //       const roomMessages = await chatService.getMessagesForRoom(roomId);
-// // //       setMessages(roomMessages);
-// // //       setCurrentRoom(roomId);
-// // //       setMessageOffset(roomMessages.length);
-
-// // //       // Reset typing indicators on room switch
-// // //       setTypingUsers([]);
-// // //     } catch (error) {
-// // //       console.error("Error joining room:", error);
-// // //     } finally {
-// // //       setIsLoading(false);
-// // //     }
-// // //   }, []);
-
-// // //   const sendMessage = useCallback(async (text: string) => {
-// // //     try {
-// // //       await chatService.sendMessage(text);
-// // //     } catch (error) {
-// // //       console.error("Error sending message:", error);
-// // //     }
-// // //   }, []);
-
-// // //   const startTyping = useCallback(() => {
-// // //     chatService.startTyping();
-// // //   }, []);
-
-// // //   const stopTyping = useCallback(() => {
-// // //     chatService.stopTyping();
-// // //   }, []);
-
-// // //   const loadMoreMessages = useCallback(async () => {
-// // //     if (!currentRoom || isLoading) return;
-// // //     try {
-// // //       setIsLoading(true);
-// // //       const older = await chatService.getMessagesForRoom(
-// // //         currentRoom,
-// // //         20,
-// // //         messageOffset
-// // //       );
-// // //       if (older.length > 0) {
-// // //         setMessages((prev) => [...older, ...prev]);
-// // //         setMessageOffset((prev) => prev + older.length);
-// // //       }
-// // //     } catch (error) {
-// // //       console.error("Error loading more messages:", error);
-// // //     } finally {
-// // //       setIsLoading(false);
-// // //     }
-// // //   }, [currentRoom, messageOffset, isLoading]);
-
-// // //   return {
-// // //     messages,
-// // //     typingUsers,
-// // //     rooms,
-// // //     currentRoom,
-// // //     isLoading,
-// // //     sendMessage,
-// // //     joinRoom,
-// // //     startTyping,
-// // //     stopTyping,
-// // //     loadMoreMessages,
-// // //   };
-// // // };
-
-// // // hooks/useChat.ts
-// // import { useState, useEffect, useCallback, useRef } from "react";
-// // import { useFocusEffect } from "@react-navigation/native";
-// // import { chatService, TypingUser } from "../services/chatService";
-// // import { ChatMessage, ChatRoom } from "../services/chatDatabase";
-
-// // /** What the hook gives back to screens */
-// // export interface UseChatReturn {
-// //   messages: ChatMessage[];
-// //   typingUsers: TypingUser[];
-// //   rooms: ChatRoom[];
-// //   currentRoom: string | null;
-// //   isLoading: boolean;
-// //   sendMessage: (text: string) => Promise<void>;
-// //   joinRoom: (roomId: string, roomName: string) => Promise<void>;
-// //   startTyping: () => void;
-// //   stopTyping: () => void;
-// //   loadMoreMessages: () => Promise<void>;
-// // }
-
-// // /**
-// //  * useChat
-// //  * - Sets up/tears down real-time listeners once for a given user
-// //  * - Keeps local UI state (messages, typing indicators, rooms)
-// //  * - Reads/writes persistent chat history via chatService/chatDatabase
-// //  * - On screen focus, reloads messages from storage so web won’t “forget”
-// //  */
-// // export const useChat = (userId: string, userName: string): UseChatReturn => {
-// //   /** ----- UI state the screen will render ----- */
-// //   const [messages, setMessages] = useState<ChatMessage[]>([]);
-// //   const [typingUsers, setTypingUsers] = useState<TypingUser[]>([]);
-// //   const [rooms, setRooms] = useState<ChatRoom[]>([]);
-// //   const [currentRoom, setCurrentRoom] = useState<string | null>(null);
-// //   const [isLoading, setIsLoading] = useState(false);
-// //   const [messageOffset, setMessageOffset] = useState(0); // for pagination
-
-// //   /**
-// //    * We’ll store any “unsubscribe” functions returned by chatService.onX(...)
-// //    * in a ref so we can remove them on unmount (and avoid double-binding).
-// //    */
-// //   const unsubsRef = useRef<Array<() => void>>([]);
-
-// //   /** Small helper to remove all listeners we registered from this hook */
-// //   const removeAllListeners = () => {
-// //     unsubsRef.current.forEach((off) => {
-// //       try {
-// //         off();
-// //       } catch {}
-// //     });
-// //     unsubsRef.current = [];
-// //   };
-
-// //   /**
-// //    * 1) One-time setup for this user:
-// //    *    - initialize chat layer (opens socket, identifies user, primes DB)
-// //    *    - fetch known rooms
-// //    *    - bind real-time listeners (message, typing, delivery ack)
-// //    *
-// //    * NOTE: We DO NOT disconnect the socket in this hook; the socket is app-wide.
-// //    * We only remove the event listeners we added.
-// //    */
-// //   useEffect(() => {
-// //     let cancelled = false;
-
-// //     (async () => {
-// //       setIsLoading(true);
-
-// //       // a) make sure chat infrastructure is ready (socket + db + identity)
-// //       await chatService.initialize(userId, userName);
-// //       if (cancelled) return;
-
-// //       // b) load any rooms we know about (for a room picker UI, etc.)
-// //       const existingRooms = await chatService.getAllRooms();
-// //       if (cancelled) return;
-// //       setRooms(existingRooms);
-
-// //       // c) avoid double listeners if effect re-runs
-// //       removeAllListeners();
-
-// //       // d) MESSAGE stream — de-dupe by id/tempId (optimistic -> server ack)
-// //       const offMessage = chatService.onMessage((message) => {
-// //         setMessages((prev) => {
-// //           const exists = prev.some(
-// //             (m) => m.id === message.id || m.tempId === message.tempId
-// //           );
-// //           if (exists) {
-// //             // replace the existing copy (e.g., update delivered flag)
-// //             return prev.map((m) =>
-// //               m.id === message.id || m.tempId === message.tempId ? message : m
-// //             );
-// //           }
-// //           return [...prev, message];
-// //         });
-// //       });
-
-// //       // e) TYPING indicators — keep a tiny set of who’s typing
-// //       const offTyping = chatService.onTyping((typingUser) => {
-// //         setTypingUsers((prev) => {
-// //           const others = prev.filter((u) => u.userId !== typingUser.userId);
-// //           return typingUser.isTyping ? [...others, typingUser] : others;
-// //         });
-// //       });
-
-// //       // f) DELIVERY ACK — server maps tempId -> real message id
-// //       const offDelivery = chatService.onDelivery((tempId, messageId) => {
-// //         setMessages((prev) =>
-// //           prev.map((m) =>
-// //             m.tempId === tempId
-// //               ? { ...m, id: messageId, delivered: true, tempId: undefined }
-// //               : m
-// //           )
-// //         );
-// //       });
-
-// //       // remember these so we can unbind later
-// //       unsubsRef.current = [offMessage, offTyping, offDelivery];
-
-// //       setIsLoading(false);
-// //     })();
-
-// //     // cleanup on unmount or deps change
-// //     return () => {
-// //       cancelled = true;
-// //       removeAllListeners(); // remove listeners added above
-// //       // (socket stays alive; other screens may still use it)
-// //     };
-// //   }, [userId, userName]);
-
-// //   /**
-// //    * 2) When the screen comes back into focus (you navigate back here),
-// //    *    re-hydrate messages for the current room from persistent storage.
-// //    *    This fixes the “web loses messages when navigating away” problem.
-// //    */
-// //   useFocusEffect(
-// //     useCallback(() => {
-// //       let active = true;
-
-// //       (async () => {
-// //         if (!currentRoom) return;
-// //         const saved = await chatService.getMessagesForRoom(currentRoom);
-// //         if (!active) return;
-
-// //         setMessages(saved);
-// //         setMessageOffset(saved.length);
-// //         setTypingUsers([]); // clear any stale typing badges
-// //       })();
-
-// //       return () => {
-// //         active = false;
-// //       };
-// //     }, [currentRoom])
-// //   );
-
-// //   /**
-// //    * joinRoom
-// //    * - Tells the server we’re in a specific room (for targeted events)
-// //    * - Loads latest history for that room from storage (so UI has messages
-// //    *   even before new real-time events arrive)
-// //    */
-// //   const joinRoom = useCallback(async (roomId: string, roomName: string) => {
-// //     try {
-// //       setIsLoading(true);
-
-// //       await chatService.joinRoom(roomId, roomName);
-
-// //       const roomMessages = await chatService.getMessagesForRoom(roomId);
-// //       setMessages(roomMessages);
-// //       setCurrentRoom(roomId);
-// //       setMessageOffset(roomMessages.length);
-// //       setTypingUsers([]);
-// //     } catch (error) {
-// //       console.error("Error joining room:", error);
-// //     } finally {
-// //       setIsLoading(false);
-// //     }
-// //   }, []);
-
-// //   /**
-// //    * sendMessage
-// //    * - chatService handles optimistic insert + persistence + socket emit
-// //    * - If offline, your socketService queues the emit and it will flush later
-// //    */
-// //   const sendMessage = useCallback(async (text: string) => {
-// //     try {
-// //       await chatService.sendMessage(text);
-// //     } catch (error) {
-// //       console.error("Error sending message:", error);
-// //     }
-// //   }, []);
-
-// //   /** Start/stop typing indicators for the current user */
-// //   const startTyping = useCallback(() => {
-// //     chatService.startTyping();
-// //   }, []);
-// //   const stopTyping = useCallback(() => {
-// //     chatService.stopTyping();
-// //   }, []);
-
-// //   /**
-// //    * loadMoreMessages
-// //    * - Simple pagination: fetch older messages (limit=20) starting at current offset,
-// //    *   then prepend them to the list.
-// //    */
-// //   const loadMoreMessages = useCallback(async () => {
-// //     if (!currentRoom || isLoading) return;
-
-// //     try {
-// //       setIsLoading(true);
-
-// //       const older = await chatService.getMessagesForRoom(
-// //         currentRoom,
-// //         20, // limit
-// //         messageOffset // offset
-// //       );
-
-// //       if (older.length > 0) {
-// //         // prepend older history above what’s already shown
-// //         setMessages((prev) => [...older, ...prev]);
-// //         setMessageOffset((prev) => prev + older.length);
-// //       }
-// //     } catch (error) {
-// //       console.error("Error loading more messages:", error);
-// //     } finally {
-// //       setIsLoading(false);
-// //     }
-// //   }, [currentRoom, messageOffset, isLoading]);
-
-// //   /** What the screen gets to use */
-// //   return {
-// //     messages,
-// //     typingUsers,
-// //     rooms,
-// //     currentRoom,
-// //     isLoading,
-// //     sendMessage,
-// //     joinRoom,
-// //     startTyping,
-// //     stopTyping,
-// //     loadMoreMessages,
-// //   };
-// // };
-
-// // hooks/useChat.ts
-// import { useState, useEffect, useCallback, useRef } from "react";
-// import { useFocusEffect } from "@react-navigation/native";
-// import { chatService, TypingUser } from "../services/chatService";
-// import { ChatMessage, ChatRoom } from "../services/chatDatabase";
-
-// /** What the hook gives back to screens */
-// export interface UseChatReturn {
-//   messages: ChatMessage[];
-//   typingUsers: TypingUser[];
-//   rooms: ChatRoom[];
-//   currentRoom: string | null;
-//   isLoading: boolean;
-//   sendMessage: (text: string) => Promise<void>;
-//   joinRoom: (roomId: string, roomName: string) => Promise<void>;
-//   startTyping: () => void;
-//   stopTyping: () => void;
-//   loadMoreMessages: () => Promise<void>;
-//   /** 👶 NEW: lets a screen explicitly reload history from persistence */
-//   reloadMessages: (roomId?: string) => Promise<void>;
-// }
-
-// /**
-//  * useChat
-//  * - Sets up/tears down real-time listeners once for a given user
-//  * - Keeps local UI state (messages, typing indicators, rooms)
-//  * - Reads/writes persistent chat history via chatService/chatDatabase
-//  * - On screen focus, reloads messages from storage so web won’t “forget”
-//  */
-// export const useChat = (userId: string, userName: string): UseChatReturn => {
-//   /** ----- UI state the screen will render ----- */
-//   const [messages, setMessages] = useState<ChatMessage[]>([]);
-//   const [typingUsers, setTypingUsers] = useState<TypingUser[]>([]);
-//   const [rooms, setRooms] = useState<ChatRoom[]>([]);
-//   const [currentRoom, setCurrentRoom] = useState<string | null>(null);
-//   const [isLoading, setIsLoading] = useState(false);
-//   const [messageOffset, setMessageOffset] = useState(0); // for pagination
-
-//   /**
-//    * We’ll store any “unsubscribe” functions returned by chatService.onX(...)
-//    * in a ref so we can remove them on unmount (and avoid double-binding).
-//    */
-//   const unsubsRef = useRef<Array<() => void>>([]);
-
-//   /** Small helper to remove all listeners we registered from this hook */
-//   const removeAllListeners = () => {
-//     unsubsRef.current.forEach((off) => {
-//       try {
-//         off();
-//       } catch {}
-//     });
-//     unsubsRef.current = [];
-//   };
-
-//   /**
-//    * 1) One-time setup for this user:
-//    *    - initialize chat layer (opens socket, identifies user, primes DB)
-//    *    - fetch known rooms
-//    *    - bind real-time listeners (message, typing, delivery ack)
-//    *
-//    * NOTE: We DO NOT disconnect the socket in this hook; the socket is app-wide.
-//    * We only remove the event listeners we added.
-//    */
-//   useEffect(() => {
-//     let cancelled = false;
-
-//     (async () => {
-//       setIsLoading(true);
-
-//       // a) make sure chat infrastructure is ready (socket + db + identity)
-//       await chatService.initialize(userId, userName);
-//       if (cancelled) return;
-
-//       // b) load any rooms we know about (for a room picker UI, etc.)
-//       const existingRooms = await chatService.getAllRooms();
-//       if (cancelled) return;
-//       setRooms(existingRooms);
-
-//       // c) avoid double listeners if effect re-runs
-//       removeAllListeners();
-
-//       // d) MESSAGE stream — de-dupe by id/tempId (optimistic -> server ack)
-//       const offMessage = chatService.onMessage((message) => {
-//         setMessages((prev) => {
-//           const exists = prev.some(
-//             (m) => m.id === message.id || m.tempId === message.tempId
-//           );
-//           if (exists) {
-//             // replace the existing copy (e.g., update delivered flag)
-//             return prev.map((m) =>
-//               m.id === message.id || m.tempId === message.tempId ? message : m
-//             );
-//           }
-//           return [...prev, message];
-//         });
-//       });
-
-//       // e) TYPING indicators — keep a tiny set of who’s typing
-//       const offTyping = chatService.onTyping((typingUser) => {
-//         setTypingUsers((prev) => {
-//           const others = prev.filter((u) => u.userId !== typingUser.userId);
-//           return typingUser.isTyping ? [...others, typingUser] : others;
-//         });
-//       });
-
-//       // f) DELIVERY ACK — server maps tempId -> real message id
-//       const offDelivery = chatService.onDelivery((tempId, messageId) => {
-//         setMessages((prev) =>
-//           prev.map((m) =>
-//             m.tempId === tempId
-//               ? { ...m, id: messageId, delivered: true, tempId: undefined }
-//               : m
-//           )
-//         );
-//       });
-
-//       // remember these so we can unbind later
-//       unsubsRef.current = [offMessage, offTyping, offDelivery];
-
-//       setIsLoading(false);
-//     })();
-
-//     // cleanup on unmount or deps change
-//     return () => {
-//       cancelled = true;
-//       removeAllListeners(); // remove listeners added above
-//       // (socket stays alive; other screens may still use it)
-//     };
-//   }, [userId, userName]);
-
-//   /**
-//    * 👶 NEW helper: reloadMessages
-//    * - Purpose: explicitly reload the current room’s history from the local DB.
-//    * - Why: when a screen unmounts/remounts, React state resets, but your DB persists.
-//    * - How: read from chatService (SQLite/Async) and repopulate local state.
-//    * - Usage: call without args to reload the *current* room, or pass a roomId.
-//    */
-//   const reloadMessages = useCallback(
-//     async (roomIdParam?: string) => {
-//       const roomId = roomIdParam ?? currentRoom;
-//       if (!roomId) return; // nothing to reload yet
-
-//       try {
-//         setIsLoading(true);
-//         const saved = await chatService.getMessagesForRoom(roomId);
-//         setMessages(saved);
-//         setMessageOffset(saved.length); // keep pagination in sync
-//         setTypingUsers([]); // ditch any stale typing badges
-//       } catch (e) {
-//         console.error("reloadMessages failed:", e);
-//       } finally {
-//         setIsLoading(false);
-//       }
-//     },
-//     [currentRoom]
-//   );
-
-//   /**
-//    * 2) When the screen comes back into focus (you navigate back here),
-//    *    re-hydrate messages for the current room from persistent storage.
-//    *    This fixes the “web loses messages when navigating away” problem.
-//    */
-//   useFocusEffect(
-//     useCallback(() => {
-//       let active = true;
-
-//       (async () => {
-//         if (!currentRoom) return;
-//         const saved = await chatService.getMessagesForRoom(currentRoom);
-//         if (!active) return;
-
-//         setMessages(saved);
-//         setMessageOffset(saved.length);
-//         setTypingUsers([]); // clear any stale typing badges
-//       })();
-
-//       return () => {
-//         active = false;
-//       };
-//     }, [currentRoom])
-//   );
-
-//   /**
-//    * joinRoom
-//    * - Tells the server we’re in a specific room (for targeted events)
-//    * - Loads latest history for that room from storage (so UI has messages
-//    *   even before new real-time events arrive)
-//    */
-//   const joinRoom = useCallback(async (roomId: string, roomName: string) => {
-//     try {
-//       setIsLoading(true);
-
-//       await chatService.joinRoom(roomId, roomName);
-
-//       const roomMessages = await chatService.getMessagesForRoom(roomId);
-//       setMessages(roomMessages);
-//       setCurrentRoom(roomId);
-//       setMessageOffset(roomMessages.length);
-//       setTypingUsers([]);
-//     } catch (error) {
-//       console.error("Error joining room:", error);
-//     } finally {
-//       setIsLoading(false);
-//     }
-//   }, []);
-
-//   /**
-//    * sendMessage
-//    * - chatService handles optimistic insert + persistence + socket emit
-//    * - If offline, your socketService queues the emit and it will flush later
-//    */
-//   const sendMessage = useCallback(async (text: string) => {
-//     try {
-//       await chatService.sendMessage(text);
-//     } catch (error) {
-//       console.error("Error sending message:", error);
-//     }
-//   }, []);
-
-//   /** Start/stop typing indicators for the current user */
-//   const startTyping = useCallback(() => {
-//     chatService.startTyping();
-//   }, []);
-//   const stopTyping = useCallback(() => {
-//     chatService.stopTyping();
-//   }, []);
-
-//   /**
-//    * loadMoreMessages
-//    * - Simple pagination: fetch older messages (limit=20) starting at current offset,
-//    *   then prepend them to the list.
-//    */
-//   const loadMoreMessages = useCallback(async () => {
-//     if (!currentRoom || isLoading) return;
-
-//     try {
-//       setIsLoading(true);
-
-//       const older = await chatService.getMessagesForRoom(
-//         currentRoom,
-//         20, // limit
-//         messageOffset // offset
-//       );
-
-//       if (older.length > 0) {
-//         // prepend older history above what’s already shown
-//         setMessages((prev) => [...older, ...prev]);
-//         setMessageOffset((prev) => prev + older.length);
-//       }
-//     } catch (error) {
-//       console.error("Error loading more messages:", error);
-//     } finally {
-//       setIsLoading(false);
-//     }
-//   }, [currentRoom, messageOffset, isLoading]);
-
-//   /** What the screen gets to use */
-//   return {
-//     messages,
-//     typingUsers,
-//     rooms,
-//     currentRoom,
-//     isLoading,
-//     sendMessage,
-//     joinRoom,
-//     startTyping,
-//     stopTyping,
-//     loadMoreMessages,
-//     reloadMessages, // 👶 NEW: exposed to screens
-//   };
-// };
-
-// LET's TRY THIS ONE >......// hooks/useChat.ts
+// hooks/useChat.ts
 import { useState, useEffect, useCallback, useRef } from "react";
 import { useFocusEffect } from "@react-navigation/native";
 import { chatService, TypingUser } from "../services/chatService";
 import { ChatMessage, ChatRoom } from "../services/chatDatabase";
 
-/** What the hook gives back to screens */
+/** Props passed -->  screens */
 export interface UseChatReturn {
-  messages: ChatMessage[];
-  typingUsers: TypingUser[];
-  rooms: ChatRoom[];
-  currentRoom: string | null;
-  isLoading: boolean;
+  messages: ChatMessage[]; //[]of mesages
+  typingUsers: TypingUser[]; // [] usersType stat
+  rooms: ChatRoom[]; //[] RoomList
+  currentRoom: string | null; //currentRoom else null
+  isLoading: boolean; //SPinner....
   sendMessage: (text: string) => Promise<void>;
   joinRoom: (roomId: string, roomName: string) => Promise<void>;
   startTyping: () => void;
   stopTyping: () => void;
   loadMoreMessages: () => Promise<void>;
-  /** 👇 NEW: lets a screen re-hydrate messages from persistent storage on demand */
+  /** 👇 lets a screen re-hydrate messages from persistent storage on demand */
   reloadMessages: () => Promise<void>;
+  /** 👶 NEW: unread badge counts per room (e.g., { general: 3, dev: 1 }) */
+  unread: Record<string, number>;
 }
 
-/**
- * useChat
- * - Sets up/tears down real-time listeners once for a given user
- * - Keeps local UI state (messages, typing indicators, rooms)
- * - Reads/writes persistent chat history via chatService/chatDatabase
- * - On screen focus, reloads messages from storage so web won’t “forget”
- */
+// DEFINE HOOOKK ------------
+// takes 2 arg. userId:typeString+userName:trypeString
+// returns object of Type X => UseChatReturn*
 export const useChat = (userId: string, userName: string): UseChatReturn => {
   /** ----- UI state the screen will render ----- */
+
+  // shw ALL messg in CURRENT chaht --
+  // 1=[] of curent msesages
+  // 2=fucntion-> updates mesgesa []
   const [messages, setMessages] = useState<ChatMessage[]>([]);
+
+  //[]track of who is typing / udpates
   const [typingUsers, setTypingUsers] = useState<TypingUser[]>([]);
+
+  // [] stoers list of Rooms
   const [rooms, setRooms] = useState<ChatRoom[]>([]);
+
+  // Track Room user is @
+  // start=null
+  // fucntion=> swtich Rooms
   const [currentRoom, setCurrentRoom] = useState<string | null>(null);
+
+  //LoadingState - spinner
   const [isLoading, setIsLoading] = useState(false);
+  // Paginatiion for Message loads --
+  // start@ adn go form there /..
   const [messageOffset, setMessageOffset] = useState(0); // for pagination
 
-  /**
-   * We’ll store any “unsubscribe” functions returned by chatService.onX(...)
-   * in a ref so we can remove them on unmount (and avoid double-binding).
+  /** 2.8 --> coutner for unRead mesages / updates badge **
+   * tranks unread msges in e/a room
+   * ex: [OGChat:4, XChat:1] */
+  const [unread, setUnread] = useState<Record<string, number>>({});
+
+  // crEates a contaier/box to store values for later use
+  const currentRoomRef = useRef<string | null>(null);
+
+  // e/a currentRoom State cahnges/updates ==> store value to REf ^^
+  useEffect(() => {
+    currentRoomRef.current = currentRoom;
+  }, [currentRoom]); // will keep consistent/updated
+
+  /** New Ref to store [] of functions =. from Hook
+   * updates the state of fucntiosn
+   *e/a funct. ==> in [] = an unsubscribe/cleanup funct. => returned by Props : chatService.onMessage(...), onTyping(...)
    */
   const unsubsRef = useRef<Array<() => void>>([]);
 
-  /** Small helper to remove all listeners we registered from this hook */
+  /** Helper=> removes all listeners in hook */
   const removeAllListeners = () => {
+    // stores to Ref^^^
     unsubsRef.current.forEach((off) => {
+      // trycsth block--
       try {
-        off();
-      } catch {}
+        off(); //call e/a unsubrcibe safely
+      } catch {} //ignore (e) so it don'st block rest of code
     });
-    unsubsRef.current = [];
+    // Clear List / reset -> NOT undo / double/clean
+    unsubsRef.current = []; //important!!
   };
 
   /**
-   * 1) One-time setup for this user:
-   *    - initialize chat layer (opens socket, identifies user, primes DB)
-   *    - fetch known rooms
-   *    - bind real-time listeners (message, typing, delivery ack)
-   *
-   * NOTE: We DO NOT disconnect the socket in this hook; the socket is app-wide.
-   * We only remove the event listeners we added.
+   * START CHAT -----
+   * render/ laod lsit of Rooms
+   * setuo message lsiteners / for state
+   * keep messgs up to date w/ id/timstmpt
    */
+
+  // start @ mount
   useEffect(() => {
-    let cancelled = false;
+    let cancelled = false; //sTOP work if unmounts while loading evryhtig else in Asunc
 
+    // Async START -- PRep run/rednr/fetch conenctions
     (async () => {
-      setIsLoading(true);
+      setIsLoading(true); //Laoding state ------
 
-      // a) make sure chat infrastructure is ready (socket + db + identity)
+      //Rev up teh Caht System -> sokcet/db, identity
       await chatService.initialize(userId, userName);
-      if (cancelled) return;
+      if (cancelled) return; //stop if compoent unmoutns
 
-      // b) load any rooms we know about (for a room picker UI, etc.)
+      // Fetches all Rooms availbles
       const existingRooms = await chatService.getAllRooms();
-      if (cancelled) return;
-      setRooms(existingRooms);
+      if (cancelled) return; //stop if compoent unmoutns
 
-      // c) avoid double listeners if effect re-runs
+      setRooms(existingRooms); //update State^^
+
+      // cleanup! gets rid of lsitners so NO double subs
       removeAllListeners();
 
-      // d) MESSAGE stream — de-dupe by id/tempId (optimistic -> server ack)
+      //Wait for MEssages-> use CahtSErvices-> onMessage
       const offMessage = chatService.onMessage((message) => {
+        //update setMEesage state()
         setMessages((prev) => {
+          // check in new messg => exists in []
           const exists = prev.some(
+            // check mssg => by id or tempID => checks both to make sure no duplciates
             (m) => m.id === message.id || m.tempId === message.tempId
           );
+          // IF ALRADY in [] --> replace w. NEW MESSG
           if (exists) {
-            // replace the existing copy (e.g., update delivered flag)
             return prev.map((m) =>
               m.id === message.id || m.tempId === message.tempId ? message : m
             );
           }
+          // IF NEW messga => add @ end
           return [...prev, message];
         });
-      });
 
-      // e) TYPING indicators — keep a tiny set of who’s typing
-      const offTyping = chatService.onTyping((typingUser) => {
-        setTypingUsers((prev) => {
-          const others = prev.filter((u) => u.userId !== typingUser.userId);
-          return typingUser.isTyping ? [...others, typingUser] : others;
+        // Update coutner based on latest status
+        setUnread((prev) => {
+          // check prev/altest state
+
+          // use purrentRoomRef** to knwo which current Room user is IN
+          const activeRoom = currentRoomRef.current;
+          // IF user NOT IN ROOM yet or mssg in antoheor room
+          if (!activeRoom || message.roomId !== activeRoom) {
+            //read prev state
+            const next = { ...prev };
+            // lookup unredad Count for roomID and add to it --< update it!
+            next[message.roomId] = (next[message.roomId] ?? 0) + 1;
+            return next; //retun updates ->new if updated or NO change / OG
+          }
+          return prev; // no change if message==> for curent active room
         });
       });
 
-      // f) DELIVERY ACK — server maps tempId -> real message id
+      // TYPING indicators -- TYPING STATUS " X is Typing..."
+      const offTyping = chatService.onTyping((typingUser) => {
+        // uses chatService=onTypin => start/stop
+        // prev; list of prev. user typing
+        setTypingUsers((prev) => {
+          // update [] of users typing**
+          const others = prev.filter((u) => u.userId !== typingUser.userId);
+          // filter old list and remov entry for this user =userID ==> prevents duplictes
+          return typingUser.isTyping ? [...others, typingUser] : others; // only add them user is they're still typing...
+        });
+      });
+
+      // Update / ACK — server maps tempId -> real message id
       const offDelivery = chatService.onDelivery((tempId, messageId) => {
+        // chatService-> onbDelivary STATUS
         setMessages((prev) =>
-          prev.map((m) =>
-            m.tempId === tempId
-              ? { ...m, id: messageId, delivered: true, tempId: undefined }
-              : m
+          // server saves tempId and
+          // update state-- create new [] from old one
+          prev.map(
+            (m) =>
+              // check e/a mssg for duplicates / no repeats---
+              m.tempId === tempId
+                ? {
+                    ...m,
+                    id: messageId, // id=>realID
+                    //status upadte=> true delivered!- yay!
+                    delivered: true,
+                    //clear tempID - jsut incase
+                    tempId: undefined,
+                  }
+                : m //not match=> return / no change
           )
         );
       });
 
-      // remember these so we can unbind later
+      // saves functiosn to ref leter--
       unsubsRef.current = [offMessage, offTyping, offDelivery];
 
-      setIsLoading(false);
+      setIsLoading(false); //ayscn @ end.. no more laod stae
     })();
 
-    // cleanup on unmount or deps change
+    // CLEaN UP @ mount ----
     return () => {
-      cancelled = true;
+      cancelled = true; //stop all satet updates
       removeAllListeners(); // remove listeners added above
-      // (socket stays alive; other screens may still use it)
     };
-  }, [userId, userName]);
+  }, [userId, userName]); // Rerun IF identity CHAnges ---
 
-  /**
-   * 👇 NEW helper
-   * reloadMessages()
-   * - Reads the latest messages for the *current* room from persistent storage
-   * - Useful when a screen re-gains focus or after a hard reload/dev refresh
+  /** reloadMessages() -------------
+   * - Read latest messages in room @ Screen Focus
    */
   const reloadMessages = useCallback(async () => {
     if (!currentRoom) return; // no room selected yet
+    // load lsit
     const saved = await chatService.getMessagesForRoom(currentRoom);
     setMessages(saved);
     setMessageOffset(saved.length);
-    setTypingUsers([]); // clear any stale typing badges
+    setTypingUsers([]); // update/cahneg Typing Status
   }, [currentRoom]);
 
-  /**
-   * 2) When the screen comes back into focus (you navigate back here),
-   *    re-hydrate messages for the current room from persistent storage.
-   *    This fixes the “web loses messages when navigating away” problem.
+  /**2.6 -- > FOcus & Reload all previus Messgaes
    */
   useFocusEffect(
     useCallback(() => {
-      let active = true;
+      let active = true; //chesck if we're still on scren
 
       (async () => {
-        if (!currentRoom) return;
-        const saved = await chatService.getMessagesForRoom(currentRoom);
-        if (!active) return;
+        if (!currentRoom) return; //no room -> no meed to Reload
 
-        setMessages(saved);
-        setMessageOffset(saved.length);
-        setTypingUsers([]); // clear any stale typing badges
+        // fetch saved CahtMeesags of room =. DB/cache
+        const saved = await chatService.getMessagesForRoom(currentRoom);
+        if (!active) return; //IF user left--> befroe fetch - cancel -HALT!
+
+        setMessages(saved); //pass mssg-> state-> to render
+        setMessageOffset(saved.length); //part of Paginatin--> helsp trak # of mesage for screen rendering
+        setTypingUsers([]); // clear typing [] cue--> "x typoing..."
       })();
 
       return () => {
         active = false;
+        // if USER LEAVES (rude...) before render -> DO NOT udpate states
       };
-    }, [currentRoom])
+    }, [currentRoom]) //take it from the top when currentRoom cahnges --
   );
 
-  /**
-   * joinRoom
-   * - Tells the server we’re in a specific room (for targeted events)
-   * - Loads latest history for that room from storage (so UI has messages
-   *   even before new real-time events arrive)
+  /*** JOIN ROOM  ---------
+   * - 2.8  resets room => unread Counter @ 0
    */
   const joinRoom = useCallback(async (roomId: string, roomName: string) => {
     try {
       setIsLoading(true);
 
-      await chatService.joinRoom(roomId, roomName);
+      await chatService.joinRoom(roomId, roomName); //tell serverv RoomChat
 
       const roomMessages = await chatService.getMessagesForRoom(roomId);
-      setMessages(roomMessages);
-      setCurrentRoom(roomId);
+      // show msg list
+      setMessages(roomMessages); //update render from DB data
+      setCurrentRoom(roomId); //Make active ROom
       setMessageOffset(roomMessages.length);
       setTypingUsers([]);
+
+      // REsET coutner -> User IN ROOM now---
+      setUnread((u) => ({ ...u, [roomId]: 0 }));
     } catch (error) {
+      // catch erreor
       console.error("Error joining room:", error);
     } finally {
-      setIsLoading(false);
+      setIsLoading(false); //loading state
     }
   }, []);
 
-  /**
-   * sendMessage
-   * - chatService handles optimistic insert + persistence + socket emit
-   * - If offline, your socketService queues the emit and it will flush later
+  /**2.6 - sendMessage
+   *  chatService create new local messg w/ tempID
+   * - stays locally / emit to SErver = online
+   * - If offline==>  socketService queues
    */
   const sendMessage = useCallback(async (text: string) => {
     try {
@@ -1055,33 +271,29 @@ export const useChat = (userId: string, userName: string): UseChatReturn => {
     }
   }, []);
 
-  /** Start/stop typing indicators for the current user */
+  /** Start/stop Typing = Status/indicators For current user */
   const startTyping = useCallback(() => {
-    chatService.startTyping();
+    chatService.startTyping(); //emit/send to server
   }, []);
   const stopTyping = useCallback(() => {
     chatService.stopTyping();
   }, []);
 
-  /**
-   * loadMoreMessages
-   * - Simple pagination: fetch older messages (limit=20) starting at current offset,
-   *   then prepend them to the list.
-   */
+  /** PAGINATION==>  loadMoreMessages*/
   const loadMoreMessages = useCallback(async () => {
     if (!currentRoom || isLoading) return;
-
+    // Fetch older messages
     try {
       setIsLoading(true);
-
+      // Max =20 @ offSEt ==> add new @ ends
       const older = await chatService.getMessagesForRoom(
         currentRoom,
-        20, // limits
+        20, // limit
         messageOffset // offset
       );
 
       if (older.length > 0) {
-        // prepend older history above what’s already shown -- UI / like in text mesesg
+        // add old history b4 new ones -- UI / like in text messages
         setMessages((prev) => [...older, ...prev]);
         setMessageOffset((prev) => prev + older.length);
       }
@@ -1092,7 +304,7 @@ export const useChat = (userId: string, userName: string): UseChatReturn => {
     }
   }, [currentRoom, messageOffset, isLoading]);
 
-  /** What the screen gets to use */
+  /** What Screen gets to use */
   return {
     messages,
     typingUsers,
@@ -1104,6 +316,8 @@ export const useChat = (userId: string, userName: string): UseChatReturn => {
     startTyping,
     stopTyping,
     loadMoreMessages,
-    reloadMessages, // 👈 NEW
+    reloadMessages,
+    // provde unRead MAp() ==> for Channelist => upadte badges
+    unread,
   };
 };

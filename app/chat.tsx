@@ -1,150 +1,9 @@
-// import React, { useEffect, useRef, useState } from "react";
-// import {
-//   KeyboardAvoidingView,
-//   Platform,
-//   StyleSheet,
-//   FlatList,
-//   View,
-//   ActivityIndicator,
-// } from "react-native";
-// import { SafeAreaView } from "react-native-safe-area-context";
+/** LET's TRY THS AGAIN ------------- */
 
-// // Import cusotm hooks for chatScreen
-// import MessageList from "../components/chatUI/MessageList";
-// import MessageInput from "../components/chatUI/MessageInput";
-// import TypingIndicators from "../components/chatUI/TypingIndicators";
-// import PresenceStatus from "../components/chatUI/PresenceStatus";
+// screens/ChatScreen.tsx
+// UPDATED w/ channel list + unread badges + focus reload
+// Stores chat history and re-hydrates when you come back to the tab
 
-// // hooks for chat+Stastus idicators
-// import { useChat } from "../hooks/useChat";
-// import type { ChatMessage } from "../services/chatDatabase";
-// import { useIdentity } from "../hooks/useIdentity";
-
-// export default function ChatScreen() {
-//   // get userInfo (id,naem) IF identity ready
-//   const { userId, userName, ready } = useIdentity();
-//   // stete formessge inputText
-//   const [text, setText] = useState("");
-//   // FlatList -> userRef -> references lsit so we can scrool
-//   const listRef = useRef<FlatList<ChatMessage>>(null);
-
-//   /** useChat Hook
-//    * Gives all chat features
-//    * provides cchat data
-//    * messg in chat
-//    * typingUsers:which usesr is Typing
-//    * joinRoom: fuction to joim chat room (WILL NEED UPDATE THIS for CHAT ROOM FEATURES)
-//    * sendMEsage: fucntion -> ensd meassage
-//    * startTuping: function trigegrs to show status of "I'm tyoping.."
-//    * stopTyping: "fuction to trigger/stop typing + alert..
-//    * */
-//   const {
-//     messages,
-//     typingUsers,
-//     joinRoom,
-//     sendMessage,
-//     startTyping,
-//     stopTyping,
-//   } = useChat(userId ?? "", userName ?? "Anonymous"); //tager userID for userNaem of not deafult -> Anonymous name
-
-//   // whenuser identity => READY -> Join general chat room
-//   useEffect(() => {
-//     // wait for Identiy
-//     if (!ready) return;
-//     // if ready -> add user to general Caht
-//     joinRoom("general", "General Chat");
-//   }, [ready, joinRoom]); //
-
-//   // e/a time "messages change" -->  auto-scroll to bottom
-//   useEffect(() => {
-//     if (messages.length > 0) {
-//       setTimeout(() => listRef.current?.scrollToEnd({ animated: true }), 80);
-//     }
-//   }, [messages]); // fetch new mesasges
-
-//   // SEND HANDLER ----
-//   const handleSend = async () => {
-//     // if NO text --> don't send
-//     if (!text.trim()) return;
-//     // send chat through useChat --
-//     await sendMessage(text.trim());
-//     setText(""); //clear input lsit e/a time
-//     stopTyping(); // reset user to not typign
-//   };
-
-//   // WAiting for User Identity to be ready ^^^ useIdentity()
-//   if (!ready || !userId) {
-//     return (
-//       <SafeAreaView style={styles.safeArea}>
-//         <View
-//           style={[
-//             styles.flex1,
-//             { justifyContent: "center", alignItems: "center" },
-//           ]}
-//         >
-//           <ActivityIndicator />
-//         </View>
-//       </SafeAreaView>
-//     );
-//   }
-//   /** ---------- UI RENDERING / Layout / Desing  -----  */
-//   return (
-//     <SafeAreaView style={styles.safeArea}>
-//       {/* Sho Room name + # Users live  */}
-//       <PresenceStatus
-//         roomName="General Chat"
-//         online={true}
-//         participantsCount={2} //need up make dynamic to reflect users ***
-//       />
-//       <KeyboardAvoidingView
-//         behavior={Platform.OS === "ios" ? "padding" : "height"}
-//         style={styles.flex1}
-//       >
-//         {/* makes sure keyboard doesn’t cover input */}
-//         <KeyboardAvoidingView
-//           behavior={Platform.OS === "ios" ? "padding" : "height"}
-//           style={styles.flex1}
-//         ></KeyboardAvoidingView>
-//         {/* RENDER actul Chat mesages  */}
-//         <View style={styles.flex1}>
-//           <MessageList
-//             ref={listRef}
-//             messages={messages as ChatMessage[]}
-//             currentUserId={userId}
-//           />
-//         </View>
-//         {/* shows "UserX..." whn typeig  */}
-//         <TypingIndicators typingUsers={typingUsers} />
-//         {/* Input section / text input and sedn bttn for mssgse  */}
-//         <MessageInput
-//           value={text}
-//           onChangeText={(t) => {
-//             // when typeing tigger stop/startTypign handlers
-//             setText(t);
-//             if (t && t.trim().length > 0) startTyping();
-//             else stopTyping();
-//           }}
-//           // trigger handlers----
-//           onSend={handleSend}
-//           onStartTyping={startTyping}
-//           onStopTyping={stopTyping}
-//         />
-//       </KeyboardAvoidingView>
-//     </SafeAreaView>
-//   );
-// }
-// /**  UI STYLES ---------------------------------- */
-// const styles = StyleSheet.create({
-//   safeArea: {
-//     flex: 1, // take up full height/width
-//     backgroundColor: "#F9FAFB",
-//   },
-//   //"fill space" -> stretch/ fill all availble space
-//   flex1: {
-//     flex: 1,
-//   },
-// });
-// UPDATED w. corerc useEffcet that saves the chat even afetr I leave the page/ tab a-- stores the chat hustory
 import React, { useEffect, useRef, useState, useCallback } from "react";
 import {
   KeyboardAvoidingView,
@@ -155,83 +14,87 @@ import {
   ActivityIndicator,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { useFocusEffect } from "@react-navigation/native"; // 👈 needed to run logic when screen gains focus
+//logic when Focus on screen
+import { useFocusEffect } from "@react-navigation/native";
 
-// Import cusotm hooks for chatScreen
+//cahtUI imports
 import MessageList from "../components/chatUI/MessageList";
 import MessageInput from "../components/chatUI/MessageInput";
 import TypingIndicators from "../components/chatUI/TypingIndicators";
 import PresenceStatus from "../components/chatUI/PresenceStatus";
+// -- NEW compoent for chatRoom List
+import ChannelList from "../components/chatUI/ChannelList";
 
-// chat + identity
+// Hooks ---- chat + identity
 import { useChat } from "../hooks/useChat";
 import type { ChatMessage } from "../services/chatDatabase";
 import { useIdentity } from "../hooks/useIdentity";
+// Wil create Live caht Stats - user/ connetxted --- 2.8
+// import { XX } from "../services/chatService";
 
 export default function ChatScreen() {
-  // 1. get userInfo (id,naem) IF identity ready
+  // gets userInfo (id,name) IF identity ready - from userIdentity Hook
   const { userId, userName, ready } = useIdentity();
 
-  // 2. Local input state
+  // store user Text inputs to useState
+  // setText = update w/new
   const [text, setText] = useState("");
 
-  // 3. FlatList ref so we can auto-scroll to bottom on new messages
+  // FlatList REF ==> will point chat mssgs
   const listRef = useRef<FlatList<ChatMessage>>(null);
+  // Type<param> = TS ref type
+  //init val = null until list mounts
 
   /**
-   * 4) useChat gives us:
-   *    - messages: what to render
-   *    - typingUsers: who’s typing
-   *    - joinRoom/sendMessage/startTyping/stopTyping: actions
-   *    - reloadMessages: 👈 NEW helper that re-hydrates history from storage
-   *                      when the screen gains focus (so web doesn’t “forget”)
+   * use useChat Hook ----------------
+   * takes values to refernce
    */
   const {
-    messages,
-    typingUsers,
-    joinRoom,
+    messages, //msg to render
+    typingUsers, // who
+    // ROOMS ---- 2.8 feature
+    rooms, //lsit of Rooms/channels
+    currentRoom, //curent room ID
+    unread, // map() roomID for unreadCount *ChannelList badge**
+    joinRoom, // roomId,roomName ==> when user joins Room + load data
+
+    // text input -> hnadles optimistc insert/local persistence/socket emit
     sendMessage,
+    // cahneg Typing Status / update userse + typeingSTate
     startTyping,
     stopTyping,
-    // NEED to make sure your useChat returns this -- headache@@!!
+    // Pull msessg stored ==> State @ screen focus
     reloadMessages,
-    // (optional) you can also pull out isLoading if you want a spinner
-    // isLoading,
-  } = useChat(userId ?? "", userName ?? "Anonymous");
+  } = useChat(userId ?? "", userName ?? "Anonymous"); //send user id to back to Hook
+  //?-=> if userId || userName = null/undefined --> fallBk deault :Anonymous
 
   /**
-   * 5) Join a room once identity is ready.
-   *    This tells the server which room to target and loads initial history from DB.
+   * Join a default room ==> AFTET once identity is Status : ready.
+   * Server => target correct Room
+   * Load initial history from DB -- pull msessages
    */
   useEffect(() => {
     if (!ready || !userId) return;
-    joinRoom("general", "General Chat");
+    // Pick a def_ GEn. cahtRoom
+    joinRoom("general", "The OG Chat Space 💬");
   }, [ready, userId, joinRoom]);
 
-  /**
-   * 6) When this screen becomes visible again (after navigating away-and-back),
-   *    reload the room’s messages from persistent storage.
-   *    This is the key fix for “web loses messages when navigating”.
+  /** 2.6 -- PERSISTENCE STORAGE
+   *  IF SCREEN == visible again => Laod messgs from stoarge
+   *  store/queue offlien messges
    */
   useFocusEffect(
     useCallback(() => {
-      // If identity/room hasn’t been established yet, do nothing.
-      if (!ready || !userId) return;
-
-      // Pull from SQLite (native) or return [] (web) — either way the hook handles it.
-      reloadMessages();
-
-      // no cleanup needed; reloadMessages just reads from storage
+      if (!ready || !userId) return; // identity not ready yet
+      reloadMessages(); // reads from SQLite/Async and sets state
     }, [ready, userId, reloadMessages])
   );
 
-  /**
-   * 7) Whenever messages change, scroll to bottom so the newest are visible.
-   *    (Small timeout lets the list finish its layout first.)
-   */
+  // shows recent mssgse laoded ---
   useEffect(() => {
     if (messages.length > 0) {
       const t = setTimeout(
+        // scrolls chatlist @ bttom
         () => listRef.current?.scrollToEnd({ animated: true }),
         80
       );
@@ -240,39 +103,58 @@ export default function ChatScreen() {
   }, [messages]);
 
   /**
-   * 8) Send handler: optimistic add + persist + emit are handled in chatService.
-   *    We just call it, clear the input, and stop typing.
+   * SEND MESSAGE -------
    */
   const handleSend = async () => {
+    // no sned on EMPTY===
     if (!text.trim()) return;
+    // invode Servide tp SEND mssge --
     await sendMessage(text.trim());
-    setText("");
-    stopTyping();
+    setText(""); //claer's input@send
+    stopTyping(); //updates=user stopped typing
   };
 
-  /** 9) While we’re still figuring out identity, show a spinner */
+  /** LOADING Spineer ---------
+   *  @ load happening ==> show a spinner
+   * IF app NOTN ready . laoed yet
+   * Id userID NOT yet
+   */
   if (!ready || !userId) {
     return (
       <SafeAreaView style={styles.safeArea}>
-        <View
-          style={[
-            styles.flex1,
-            { justifyContent: "center", alignItems: "center" },
-          ]}
-        >
+        <View style={[styles.flex1, styles.center]}>
           <ActivityIndicator />
         </View>
       </SafeAreaView>
     );
   }
 
+  // UPDATES HEADER w/ Room Name ----
+  const currentRoomName =
+    // look through [] and pass name || else deafulte name or pass "-"
+    rooms.find((r) => r.id === currentRoom)?.name ??
+    currentRoom ??
+    "The Chat Space...💬";
+
   /** ---------- UI ---------- */
   return (
     <SafeAreaView style={styles.safeArea}>
-      {/* Header: shows room name + a static “online” for now (replace with real counts later) */}
+      {/* 2.8: Improt CahnelLIst w/bttutn */}
+      <ChannelList
+        rooms={rooms}
+        currentRoom={currentRoom}
+        unread={unread}
+        // When User taps roomBttn -> join that room
+        onSelectRoom={(roomId, roomName) => joinRoom(roomId, roomName)}
+      />
+
+      {/* Header
+      - Room name 
+      - dynamic USers's online  */}
       <PresenceStatus
-        roomName="General Chat"
-        online={true}
+        roomName={currentRoomName}
+        online={true} // need to update w/ dynamic Stat -- 2.8
+        // --- need to update wiith Dyanics usser Coutn ----- 2.8
         participantsCount={2}
       />
 
@@ -296,7 +178,7 @@ export default function ChatScreen() {
         <MessageInput
           value={text}
           onChangeText={(t) => {
-            // As you type, toggle typing indicator
+            // Toggle typing indicator @ stop/start
             setText(t);
             if (t && t.trim().length > 0) startTyping();
             else stopTyping();
@@ -309,14 +191,14 @@ export default function ChatScreen() {
     </SafeAreaView>
   );
 }
+
 /**  UI STYLES ---------------------------------- */
 const styles = StyleSheet.create({
   safeArea: {
     flex: 1, // take up full height/width
     backgroundColor: "#F9FAFB",
   },
-  //"fill space" -> stretch/ fill all availble space
-  flex1: {
-    flex: 1,
-  },
+  //"fill space" -> stretch/ fill all available space
+  flex1: { flex: 1 },
+  center: { justifyContent: "center", alignItems: "center" },
 });
