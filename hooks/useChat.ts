@@ -54,6 +54,8 @@ export const useChat = (userId: string, userName: string): UseChatReturn => {
 
   /** 2.8 --> coutner for unRead mesages / updates badge **
    * tranks unread msges in e/a room
+   *
+   *
    * ex: [OGChat:4, XChat:1] */
   const [unread, setUnread] = useState<Record<string, number>>({});
 

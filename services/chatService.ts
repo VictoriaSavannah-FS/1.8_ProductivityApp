@@ -1,3 +1,4 @@
+// export const chatService = new ChatService();
 // Upadted ChatService with a caches foe Web -----
 // services/chatService.ts
 import AsyncStorage from "@react-native-async-storage/async-storage";
@@ -53,6 +54,22 @@ const OUTBOX_KEY = "chatOutbox@v1";
 const roomCacheKey = (roomId: string) => `chatCache@room::${roomId}`;
 const ROOM_CACHE_CAP = 200; // keep last 200 messages per room
 
+/** 2.8: default rooms to seed when DB/web cache is empty (so UI has tabs) */
+const DEFAULT_ROOMS: ChatRoom[] = [
+  {
+    id: "general",
+    name: "The OG Chat Space 💬",
+    unreadCount: 0,
+    participants: [],
+  },
+  {
+    id: "dev",
+    name: "Dev-Talk and Roll.. 😎",
+    unreadCount: 0,
+    participants: [],
+  }, // NEW
+  { id: "random", name: "The Tea... ☕️", unreadCount: 0, participants: [] }, // NEW
+];
 // defien Class / datd
 class ChatService {
   // only these will have access
@@ -71,6 +88,18 @@ class ChatService {
   // wehn mssge delived => this wil be fectbed
   private deliveryListeners: ((tempId: string, messageId: string) => void)[] =
     [];
+
+  // NEW: extra listener registries so the hook can receive dynamic info
+  private connectionListeners: ((connected: boolean) => void)[] = []; // NEW
+  private editedListeners: ((p: {
+    messageId: string;
+    newText: string;
+    editedAt: string;
+  }) => void)[] = []; // NEW
+  private presenceListeners: ((p: {
+    roomId: string;
+    members: ChatUser[];
+  }) => void)[] = []; // NEW
 
   /** @MENTION - PArser helper ------------------
    * Privatefucjtion only when called / invked
@@ -210,6 +239,45 @@ class ChatService {
     }
   }
 
+  /** Testing - other chatRooms ==> ChannelList has content */
+  private async seedDefaultRooms() {
+    try {
+      // check if we already have rooms
+      const existing = await chatDatabaseService.getAllRooms();
+      if (existing.length > 0) return; // already seeded / has rooms -> skip
+
+      const nowIso = new Date().toISOString();
+
+      // Create/update room locally (matches your createOrUpdateRoom shape)
+      await chatDatabaseService.createOrUpdateRoom({
+        id: "general",
+        name: "The OG Chat Space 💬",
+        unreadCount: 0,
+        participants: [this.currentUserId!], // who "owns" or has joined
+        lastMessageTime: nowIso, // safe if your schema ignores unknown fields
+      });
+
+      await chatDatabaseService.createOrUpdateRoom({
+        id: "Tea",
+        name: "The Tea... 🎲",
+        unreadCount: 0,
+        participants: [],
+        lastMessageTime: nowIso,
+      });
+
+      await chatDatabaseService.createOrUpdateRoom({
+        id: "dev",
+        name: "Dev, Tech, and Roll 🛠️",
+        unreadCount: 0,
+        participants: [],
+        lastMessageTime: nowIso,
+      });
+    } catch (e) {
+      // safe to ignore (UI will just show empty list)
+      console.warn("Room seeding failed (non-blocking):", e);
+    }
+  }
+
   /** --------------- Lifecycle --------------- */
 
   // START UP for CHAT SERVICE ----------
@@ -229,6 +297,8 @@ class ChatService {
       console.warn("SQLite init failed; continuing without persistence:", e);
     }
 
+    // Seed ==> default rooms if none exist
+    await this.seedDefaultRooms(); // NEW
     // 3) Wire socket listeners
     this.setupSocketListeners();
 
@@ -248,7 +318,14 @@ class ChatService {
   private setupSocketListeners(): void {
     // Reconnect => try flushing outbox again
     socketService.on("connect", async () => {
+      // NEW: notify UI that we're online
+      this.connectionListeners.forEach((cb) => cb(true)); // NEW
       await this.flushOutbox();
+    });
+
+    // NEW: notify UI that we went offline
+    socketService.on("disconnect", () => {
+      this.connectionListeners.forEach((cb) => cb(false)); // NEW
     });
 
     // New message STATUS UPADTE
@@ -284,13 +361,14 @@ class ChatService {
       }) => {
         try {
           // come bakc to doublechck why RED -- arguemtn types? / order
-          await chatDatabaseService.updateMessageDeliveryStatus(
+          // FIX: use the actual DB method you implemented
+          await chatDatabaseService.confirmDelivery(
+            // FIX
             data.tempId,
-            data.messageId,
-            true
+            data.messageId
           );
         } catch (e) {
-          console.warn("updateMessageDeliveryStatus failed:", e);
+          console.warn("confirmDelivery failed:", e);
         }
         await this.removeFromOutbox(data.tempId);
         this.deliveryListeners.forEach((cb) => cb(data.tempId, data.messageId));
@@ -314,7 +392,29 @@ class ChatService {
           }
         }
         await this.cacheBulkAppend(data.roomId, data.messages);
+
+        // NEW: surface current presence to UI when we join
+        this.presenceListeners.forEach((cb) =>
+          cb({ roomId: data.roomId, members: data.participants })
+        ); // NEW
+
         await this.flushOutbox(); // if any queued sends existed, try again
+      }
+    );
+
+    // NEW: server tells us a message was edited -> push to UI
+    socketService.on(
+      "message_edited",
+      (p: { messageId: string; newText: string; editedAt: string }) => {
+        this.editedListeners.forEach((cb) => cb(p)); // NEW
+      }
+    );
+
+    // NEW: live presence updates (join/leave) -> push to UI
+    socketService.on(
+      "room_presence",
+      (p: { roomId: string; members: ChatUser[] }) => {
+        this.presenceListeners.forEach((cb) => cb(p)); // NEW
       }
     );
   }
@@ -510,15 +610,88 @@ class ChatService {
 
     return [];
   }
+  //   /** --------------- Persistence API for UI --------------- */
+  //   ...
+  //   async getAllRooms(): Promise<ChatRoom[]> {
+  //     try {
+  //       return await chatDatabaseService.getAllRooms();
+  //     } catch {
+  //       return [];
+  //     }
+  //   }
 
+  /** --------------- Rooms list (with seeding) --------------- */
+  // async getAllRooms(): Promise<ChatRoom[]> {
+  //   // 1) Try SQLite first
+  //   try {
+  //     const rooms = await chatDatabaseService.getAllRooms();
+  //     if (rooms && rooms.length > 0) return rooms;
+  //   } catch {
+  //     // ignore and fall through
+  //   }
+
+  //   // 2) If empty (or DB not available on Web), seed defaults so UI can render tabs
+  //   try {
+  //     // best effort: persist to DB if available (no-op on web if not)
+  //     for (const r of DEFAULT_ROOMS) {
+  //       try {
+  //         await chatDatabaseService.createOrUpdateRoom(r);
+  //       } catch {
+  //         /* ignore */
+  //       }
+  //     }
+  //   } catch {
+  //     /* ignore */
+  //   }
+
+  //   // 3) Return the seeded list (at minimum the UI now sees 3 rooms)
+  //   return DEFAULT_ROOMS;
+  // }
+
+  /** --------------- Rooms list (with seeding + web fallback) --------------- */
   async getAllRooms(): Promise<ChatRoom[]> {
+    let rooms: ChatRoom[] = [];
+    // 1) Try SQLite first (iOS/Android)
     try {
-      return await chatDatabaseService.getAllRooms();
+      rooms = await chatDatabaseService.getAllRooms();
     } catch {
-      return [];
+      // ignore and fall through
     }
-  }
 
+    // 2) Merge defaults so UI always sees general/dev/random
+    //    (DB rooms win if same id; defaults fill gaps)
+    const byId = new Map<string, ChatRoom>(rooms.map((r) => [r.id, r]));
+    for (const r of DEFAULT_ROOMS) {
+      if (!byId.has(r.id)) byId.set(r.id, r);
+    }
+    const merged = Array.from(byId.values());
+    if (merged.length > 0) return merged;
+
+    // 3) If still empty (e.g., web with no DB), return defaults so tabs render
+    return DEFAULT_ROOMS;
+  }
+  // /** --------------- Rooms list (with seeding + web fallback) --------------- */
+  // async getAllRooms(): Promise<ChatRoom[]> {
+  //   let rooms: ChatRoom[] = [];
+  //   // 1) Try SQLite first (iOS/Android)
+  //   try {
+  //     rooms = await chatDatabaseService.getAllRooms();
+  //   } catch {
+  //     // ignore and fall through
+  //   }
+
+  //   // 2) Merge defaults so UI always sees general/dev/random
+  //   //    (DB rooms win if same id; defaults fill gaps)
+  //   const byId = new Map<string, ChatRoom>(rooms.map((r) => [r.id, r]));
+  //   for (const r of DEFAULT_ROOMS) {
+  //     if (!byId.has(r.id)) byId.set(r.id, r);
+  //   }
+  //   const merged = Array.from(byId.values());
+  //   if (merged.length > 0) return merged;
+
+  //   // 3) If still empty (e.g., web with no DB), return defaults so tabs render
+  //   return DEFAULT_ROOMS;
+  // }
   /** --------------- Subscriptions --------------- */
 
   onMessage(cb: (m: ChatMessage) => void) {
@@ -535,6 +708,38 @@ class ChatService {
     this.deliveryListeners.push(cb);
     return () =>
       (this.deliveryListeners = this.deliveryListeners.filter((x) => x !== cb));
+  }
+
+  // NEW: live socket status for PresenceStatus dot
+  onConnection(cb: (connected: boolean) => void) {
+    // NEW
+    this.connectionListeners.push(cb);
+    // push current immediately so UI isn’t stale
+    try {
+      cb(socketService.isConnected());
+    } catch {}
+    return () =>
+      (this.connectionListeners = this.connectionListeners.filter(
+        (x) => x !== cb
+      ));
+  }
+
+  // NEW: server-driven message edits (so UI can update inline)
+  onEdited(
+    cb: (p: { messageId: string; newText: string; editedAt: string }) => void
+  ) {
+    // NEW
+    this.editedListeners.push(cb);
+    return () =>
+      (this.editedListeners = this.editedListeners.filter((x) => x !== cb));
+  }
+
+  // NEW: room presence updates (keep participants[] fresh)
+  onRoomPresence(cb: (p: { roomId: string; members: ChatUser[] }) => void) {
+    // NEW
+    this.presenceListeners.push(cb);
+    return () =>
+      (this.presenceListeners = this.presenceListeners.filter((x) => x !== cb));
   }
 
   private notifyMessageListeners(message: ChatMessage) {
