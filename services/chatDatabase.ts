@@ -324,6 +324,9 @@ export interface ChatMessage {
   delivered: boolean;
   read: boolean;
   type: "text" | "system" | "typing";
+  // A@Mentions type-> lsit of usernames @ in message
+  // stores @mentions w/ mssge
+  mentions?: string[];
 }
 
 export interface ChatRoom {

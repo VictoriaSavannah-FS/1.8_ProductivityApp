@@ -72,6 +72,27 @@ class ChatService {
   private deliveryListeners: ((tempId: string, messageId: string) => void)[] =
     [];
 
+  /** @MENTION - PArser helper ------------------
+   * Privatefucjtion only when called / invked
+   */
+  private parseMentions(text: string): string[] {
+    /**  @username==> add to [ "username",...]
+     * look through array and see if it matxhes
+     * /@\w+/g=>regex
+     * @-literal/sym.
+     * \w+ => 1/1+ "word" char. (letters, #'s,_)
+     * that "g" gloal flag => finds ALL matches - not jsut first
+     */
+
+    const matches = text.match(/@\w+/g);
+
+    /**return: if mathces exist-> loop through with map()
+     * m.slice(1) -> remove first char @ from e/a mathc => when user types "@userX"
+     * IF NO matches> retun empty []
+     */
+    return matches ? matches.map((m) => m.slice(1)) : [];
+  }
+
   /** --------------- OUTBOX helpers (retries sends) ---------------
    * USed when OFFLINE or mesage failsto sendn
    * A GLORFIED RETRY BUTTON Ssytem
@@ -326,6 +347,7 @@ class ChatService {
   async sendMessage(text: string): Promise<void> {
     // take msge text from user
     // checks if SUEr is LOGGED IN and IN ROOM
+
     if (!this.currentRoomId || !this.currentUserId || !this.currentUserName) {
       throw new Error("Not connected to a room");
     }
@@ -335,7 +357,8 @@ class ChatService {
       // radnom string
       .toString(12)
       .slice(2, 9)}`;
-
+    // icnlude mentiosn@ messg build
+    const mentions = this.parseMentions(text);
     // Optimistic message for UI + persistence
     const optimistic: ChatMessage = {
       id: tempId, // key for Flatlsit
@@ -344,6 +367,8 @@ class ChatService {
       userId: this.currentUserId, // WHO snt it
       userName: this.currentUserName, //SENDER naem
       text, // messge sent --
+      // 2.8 -- store @Mentions---
+      mentions,
       timestamp: new Date().toISOString(), // wehn
       delivered: false, //not confrim YET bt server
       read: true, // local user see own msg as read
@@ -384,6 +409,8 @@ class ChatService {
         userName: this.currentUserName,
         text,
         type: "text",
+        // @mentions
+        mentions,
       },
     });
   }
