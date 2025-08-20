@@ -497,7 +497,7 @@ export const useChat = (userId: string, userName: string): UseChatReturn => {
         setRooms([
           { id: "general", name: "General", unreadCount: 0, participants: [] },
           { id: "dev", name: "Development", unreadCount: 0, participants: [] },
-          { id: "tea", name: "Random", unreadCount: 0, participants: [] },
+          { id: "tea", name: "The Tea", unreadCount: 0, participants: [] },
         ] as ChatRoom[]);
       } else {
         setRooms(existingRooms); //update State^^
