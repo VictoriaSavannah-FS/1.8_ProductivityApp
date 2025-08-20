@@ -1,121 +1,8 @@
-// import React from "react";
-// import {
-//   View,
-//   Text,
-//   TouchableOpacity,
-//   Platform,
-//   StyleSheet,
-// } from "react-native";
-// import { useSocket } from "../hooks/useSocket";
-
-// export const ConnectionStatus: React.FC = () => {
-//   const { isConnected, connectionError, emit, lastPong } = useSocket();
-
-//   const testConnection = () => {
-//     emit("ping", {
-//       clientTimestamp: new Date().toISOString(),
-//       platform: Platform.OS,
-//     });
-//   };
-
-//   return (
-//     <View style={styles.container}>
-//       <View style={styles.row}>
-//         <Text style={styles.title}>Real-Time Status</Text>
-//         <View
-//           style={[
-//             styles.statusDot,
-//             { backgroundColor: isConnected ? "#22c55e" : "#ef4444" },
-//           ]}
-//         />
-//       </View>
-
-//       <Text style={styles.statusText}>
-//         {isConnected ? "Connected to server" : "Disconnected"}
-//       </Text>
-
-//       {connectionError && (
-//         <Text style={styles.errorText}>Error: {connectionError}</Text>
-//       )}
-
-//       {lastPong && (
-//         <Text style={styles.pingText}>
-//           Last ping: {lastPong.toLocaleTimeString()}
-//         </Text>
-//       )}
-
-//       <TouchableOpacity
-//         style={[styles.button, !isConnected && styles.buttonDisabled]}
-//         onPress={testConnection}
-//         disabled={!isConnected}
-//       >
-//         <Text style={styles.buttonText}>Test Connection</Text>
-//       </TouchableOpacity>
-//     </View>
-//   );
-// };
-
-// const styles = StyleSheet.create({
-//   container: {
-//     backgroundColor: "white",
-//     borderRadius: 8,
-//     padding: 16,
-//     marginBottom: 16,
-//     borderWidth: 1,
-//     borderColor: "#e5e7eb", // gray-200
-//   },
-//   row: {
-//     flexDirection: "row",
-//     alignItems: "center",
-//     justifyContent: "space-between",
-//     marginBottom: 8,
-//   },
-//   title: {
-//     fontWeight: "600",
-//     fontSize: 16,
-//     color: "#1f2937", // gray-800
-//   },
-//   statusDot: {
-//     width: 12,
-//     height: 12,
-//     borderRadius: 6,
-//   },
-//   statusText: {
-//     fontSize: 14,
-//     color: "#4b5563", // gray-600
-//     marginBottom: 8,
-//   },
-//   errorText: {
-//     fontSize: 14,
-//     color: "#ef4444", // red-500
-//     marginBottom: 8,
-//   },
-//   pingText: {
-//     fontSize: 12,
-//     color: "#6b7280", // gray-500
-//     marginBottom: 8,
-//   },
-//   button: {
-//     backgroundColor: "#3b82f6", // blue-500
-//     borderRadius: 8,
-//     paddingVertical: 8,
-//     paddingHorizontal: 16,
-//   },
-//   buttonDisabled: {
-//     backgroundColor: "#93c5fd", // blue-300
-//   },
-//   buttonText: {
-//     color: "white",
-//     textAlign: "center",
-//     fontWeight: "500",
-//   },
-// });
-
 // 2.4 updated for offline support
 
 // components/ConnectionStatus.tsx
-// components/ConnectionStatus.tsx
-import React, { useEffect, useState } from "react";
+
+import React, { useEffect, useState, memo } from "react"; // <-- add memo so we can export a memoized default
 import {
   View,
   Text,
@@ -141,6 +28,7 @@ import {
  * Includes a "Retry" button if the connection is broken.
  */
 
+// NOTE: keep named export for flexibility if you're importing by name somewhere
 export const ConnectionStatus: React.FC = () => {
   // Track current connection state (online/offline, latency, etc.)
   const [connectionInfo, setConnectionInfo] = useState<ConnectionInfo>(
@@ -160,8 +48,11 @@ export const ConnectionStatus: React.FC = () => {
 
   // Subscribe to changes from connectionManager
   useEffect(() => {
-    const offConn = connectionManager.onConnectionChange(setConnectionInfo);
-    const offQueue = connectionManager.onQueueChange(setQueuedOps);
+    // <-- guards in case these listeners are not implemented on a platform/mock
+    const offConn =
+      connectionManager.onConnectionChange?.(setConnectionInfo) ?? (() => {});
+    const offQueue =
+      connectionManager.onQueueChange?.(setQueuedOps) ?? (() => {});
     // cleanup when component unmounts
     return () => {
       offConn();
@@ -253,7 +144,11 @@ export const ConnectionStatus: React.FC = () => {
       : "⚪";
 
   // Retry button action
-  const handleRetry = () => connectionManager.connect();
+  const handleRetry = () => {
+    try {
+      connectionManager.connect?.(); // <-- optional chaining so it won’t crash in mocks
+    } catch {}
+  };
 
   // Turn raw number latency ==> friendly text / convert
   // had to loook this up -- idk
@@ -351,6 +246,10 @@ export const ConnectionStatus: React.FC = () => {
     </Animated.View>
   );
 };
+
+// DEFAULT EXPORT (memoized) so you can `import ConnectionStatus from "..."`
+export default memo(ConnectionStatus); // <-- this is the main fix for import mismatches
+
 /** ---------- UI STYLES Layout / Desing  -----  */
 const styles = StyleSheet.create({
   // Card container

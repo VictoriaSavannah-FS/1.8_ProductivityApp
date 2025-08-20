@@ -67,8 +67,8 @@ const DEFAULT_ROOMS: ChatRoom[] = [
     name: "Dev-Talk and Roll.. 😎",
     unreadCount: 0,
     participants: [],
-  }, // NEW
-  { id: "random", name: "The Tea... ☕️", unreadCount: 0, participants: [] }, // NEW
+  },
+  { id: "tea", name: "The Tea... ☕️", unreadCount: 0, participants: [] },
 ];
 // defien Class / datd
 class ChatService {
@@ -258,8 +258,8 @@ class ChatService {
       });
 
       await chatDatabaseService.createOrUpdateRoom({
-        id: "Tea",
-        name: "The Tea... 🎲",
+        id: "tea",
+        name: "The Tea... ☕️",
         unreadCount: 0,
         participants: [],
         lastMessageTime: nowIso,
@@ -422,6 +422,7 @@ class ChatService {
   /** --------------- Room --------------- */
 
   async joinRoom(roomId: string, roomName: string): Promise<void> {
+    if (this.currentRoomId === roomId) return; //stops rejoin loop issue**
     this.currentRoomId = roomId;
 
     // Create/update room locally
@@ -680,14 +681,14 @@ class ChatService {
   //     // ignore and fall through
   //   }
 
-  //   // 2) Merge defaults so UI always sees general/dev/random
-  //   //    (DB rooms win if same id; defaults fill gaps)
-  //   const byId = new Map<string, ChatRoom>(rooms.map((r) => [r.id, r]));
-  //   for (const r of DEFAULT_ROOMS) {
-  //     if (!byId.has(r.id)) byId.set(r.id, r);
-  //   }
-  //   const merged = Array.from(byId.values());
-  //   if (merged.length > 0) return merged;
+  // // 2) Merge defaults so UI always sees general/dev/random
+  // //    (DB rooms win if same id; defaults fill gaps)
+  // const byId = new Map<string, ChatRoom>(rooms.map((r) => [r.id, r]));
+  // for (const r of DEFAULT_ROOMS) {
+  //   if (!byId.has(r.id)) byId.set(r.id, r);
+  // }
+  // const merged = Array.from(byId.values());
+  // if (merged.length > 0) return merged;
 
   //   // 3) If still empty (e.g., web with no DB), return defaults so tabs render
   //   return DEFAULT_ROOMS;
