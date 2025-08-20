@@ -34,6 +34,15 @@ It works on both **mobile (iOS)** and **web platforms** using Expo + TypeScript.
 - Syncs chat state across multiple clients (cross-platform)
 - Demonstrates functionality even when Wi-Fi is turned off and reconnected
 
+### Chat Rooms + @Mentions (Assignment 2.8)
+
+- Multi-room chat ("The OG Chat Room", "Dev-Talk and Rall", "The Tea...")
+- Unread badges for inactive channels
+- Typing indicators with user names
+- Offline outbox (queued messages)
+- Presence: join/leave + online status ("X User left... till next time...")
+- @mentions parsing w/ csutom highlight (styles for "Pop" in chat)
+
 ---
 
 ## 🛠 Tech Stack
@@ -96,7 +105,7 @@ It works on both **mobile (iOS)** and **web platforms** using Expo + TypeScript.
 
 ## Update Client Config
 
-- Inside the App, update the socket URL to match your LAN IP and port (e.g., http://192.168.x.x:3000).
+- Inside the App, update the socket URL to match your LAN IP and port (exmple: http://192.168.x.x:3000).
 
 ## Test Offline Queue•
 
@@ -106,7 +115,9 @@ It works on both **mobile (iOS)** and **web platforms** using Expo + TypeScript.
 
 ### Notes
 
-This project was adapted with help from AI-assisted code generation.
+This project was adapted with help from AI-assisted generation.
 
-- I reviewed, tested, and modified the code to ensure it worked with my setup (LAN IP, server config, and React Native client).
-- I also refactored styling to use StyleSheet instead of NativeWind and restructured files for clarity.
+- I reviewed and tested all code on both web and iOS.
+- Replaced NativeWind with StyleSheet and restructured folders.
+- Debugged LAN config and updated client-server socket logic.
+- Schema and service logic was extended for presence and offline functionality.
